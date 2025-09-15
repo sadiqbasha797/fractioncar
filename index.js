@@ -13,7 +13,7 @@ app.use(cors({
     'http://localhost:4200', // Angular default port for development
     'http://localhost:57477', // Additional development port
     'https://fraction.projexino.com', // Production frontend URL
-    'https://fraction-admin.projexino.com', // Production frontend URL
+    'https://fractionadmin.projexino.com', // Production frontend URL
     'https://fraction2.projexino.com', // Production frontend URL
     'https://fractionbackend.projexino.com' // Production backend URL (for self-referencing)
   ],
