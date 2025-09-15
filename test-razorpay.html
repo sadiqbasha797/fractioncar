@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Razorpay Integration Test</title>
+    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+        }
+        .section h3 {
+            color: #2c3e50;
+            margin-top: 0;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input, textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+            padding: 10px;
+            border-radius: 4px;
+            margin-top: 10px;
+        }
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+            padding: 10px;
+            border-radius: 4px;
+            margin-top: 10px;
+        }
+        .response {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 10px;
+            margin-top: 10px;
+            white-space: pre-wrap;
+            font-family: monospace;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔐 Razorpay Integration Test Page</h1>
+        
+        <!-- Create Order Section -->
+        <div class="section">
+            <h3>1. Create Payment Order</h3>
+            <div class="form-group">
+                <label for="amount">Amount (₹):</label>
+                <input type="number" id="amount" value="100" min="1">
+            </div>
+            <div class="form-group">
+                <label for="currency">Currency:</label>
+                <input type="text" id="currency" value="INR" readonly>
+            </div>
+            <div class="form-group">
+                <label for="receipt">Receipt:</label>
+                <input type="text" id="receipt" value="">
+            </div>
+            <button onclick="createOrder()">Create Order</button>
+            <div id="createOrderResponse" class="response" style="display: none;"></div>
+        </div>
+
+        <!-- Test Payment Section -->
+        <div class="section">
+            <h3>2. Test Payment (Razorpay Checkout)</h3>
+            <div class="form-group">
+                <label for="testAmount">Amount (₹):</label>
+                <input type="number" id="testAmount" value="100" min="1">
+            </div>
+            <button onclick="testPayment()">Test Payment</button>
+            <div id="paymentResponse" class="response" style="display: none;"></div>
+        </div>
+
+        <!-- Verify Payment Section -->
+        <div class="section">
+            <h3>3. Verify Payment</h3>
+            <div class="form-group">
+                <label for="orderId">Order ID:</label>
+                <input type="text" id="orderId" placeholder="Enter order ID">
+            </div>
+            <div class="form-group">
+                <label for="paymentId">Payment ID:</label>
+                <input type="text" id="paymentId" placeholder="Enter payment ID">
+            </div>
+            <div class="form-group">
+                <label for="signature">Signature:</label>
+                <input type="text" id="signature" placeholder="Enter signature">
+            </div>
+            <button onclick="verifyPayment()">Verify Payment</button>
+            <div id="verifyResponse" class="response" style="display: none;"></div>
+        </div>
+
+        <!-- Get Payment Details Section -->
+        <div class="section">
+            <h3>4. Get Payment Details</h3>
+            <div class="form-group">
+                <label for="getPaymentId">Payment ID:</label>
+                <input type="text" id="getPaymentId" placeholder="Enter payment ID">
+            </div>
+            <button onclick="getPaymentDetails()">Get Payment Details</button>
+            <div id="paymentDetailsResponse" class="response" style="display: none;"></div>
+        </div>
+
+        <!-- Get Order Details Section -->
+        <div class="section">
+            <h3>5. Get Order Details</h3>
+            <div class="form-group">
+                <label for="getOrderId">Order ID:</label>
+                <input type="text" id="getOrderId" placeholder="Enter order ID">
+            </div>
+            <button onclick="getOrderDetails()">Get Order Details</button>
+            <div id="orderDetailsResponse" class="response" style="display: none;"></div>
+        </div>
+
+        <!-- Refund Payment Section -->
+        <div class="section">
+            <h3>6. Refund Payment</h3>
+            <div class="form-group">
+                <label for="refundPaymentId">Payment ID:</label>
+                <input type="text" id="refundPaymentId" placeholder="Enter payment ID">
+            </div>
+            <div class="form-group">
+                <label for="refundAmount">Refund Amount (₹):</label>
+                <input type="number" id="refundAmount" placeholder="Leave empty for full refund">
+            </div>
+            <div class="form-group">
+                <label for="refundNotes">Notes:</label>
+                <textarea id="refundNotes" placeholder="Refund notes (optional)"></textarea>
+            </div>
+            <button onclick="refundPayment()">Process Refund</button>
+            <div id="refundResponse" class="response" style="display: none;"></div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:5000/api/payments';
+        let RAZORPAY_KEY_ID = '';
+        
+        // Fetch Razorpay Key ID on page load
+        async function loadRazorpayKey() {
+            try {
+                const response = await fetch('http://localhost:5000/api/razorpay-key');
+                const data = await response.json();
+                RAZORPAY_KEY_ID = data.key;
+                console.log('Razorpay Key loaded:', RAZORPAY_KEY_ID);
+            } catch (error) {
+                console.error('Failed to load Razorpay Key:', error);
+                showResponse('paymentResponse', { error: 'Failed to load Razorpay Key. Please check your environment variables.' }, true);
+            }
+        }
+        
+        // Load Razorpay Key when page loads
+        window.onload = loadRazorpayKey;
+        
+        // Helper function to display responses
+        function showResponse(elementId, data, isError = false) {
+            const element = document.getElementById(elementId);
+            element.style.display = 'block';
+            element.className = isError ? 'response error' : 'response success';
+            element.textContent = JSON.stringify(data, null, 2);
+        }
+
+        // Helper function to make API calls
+        async function makeApiCall(url, method = 'GET', body = null) {
+            try {
+                const options = {
+                    method,
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                };
+                
+                if (body) {
+                    options.body = JSON.stringify(body);
+                }
+
+                const response = await fetch(url, options);
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(data.message || 'API call failed');
+                }
+                
+                return data;
+            } catch (error) {
+                throw error;
+            }
+        }
+
+        // Create Order
+        async function createOrder() {
+            try {
+                const amount = document.getElementById('amount').value;
+                const currency = document.getElementById('currency').value;
+                const receipt = document.getElementById('receipt').value || `receipt_${Date.now()}`;
+
+                const data = await makeApiCall(`${API_BASE}/create-order`, 'POST', {
+                    amount: parseInt(amount),
+                    currency,
+                    receipt
+                });
+
+                showResponse('createOrderResponse', data);
+            } catch (error) {
+                showResponse('createOrderResponse', { error: error.message }, true);
+            }
+        }
+
+        // Test Payment using Razorpay Checkout
+        async function testPayment() {
+            try {
+                if (!RAZORPAY_KEY_ID) {
+                    throw new Error('Razorpay Key not loaded. Please refresh the page and try again.');
+                }
+
+                const amount = document.getElementById('testAmount').value;
+                
+                // First create an order
+                const orderData = await makeApiCall(`${API_BASE}/create-order`, 'POST', {
+                    amount: parseInt(amount),
+                    currency: 'INR',
+                    receipt: `test_receipt_${Date.now()}`
+                });
+
+                // Configure Razorpay options
+                const options = {
+                    key: RAZORPAY_KEY_ID, // Using the actual key from environment
+                    amount: orderData.order.amount,
+                    currency: orderData.order.currency,
+                    name: 'Fraction Test',
+                    description: 'Test Payment',
+                    order_id: orderData.order.id,
+                    handler: function (response) {
+                        showResponse('paymentResponse', {
+                            message: 'Payment successful!',
+                            payment_id: response.razorpay_payment_id,
+                            order_id: response.razorpay_order_id,
+                            signature: response.razorpay_signature
+                        });
+                    },
+                    prefill: {
+                        name: 'Test User',
+                        email: 'test@example.com',
+                        contact: '9999999999'
+                    },
+                    theme: {
+                        color: '#3399cc'
+                    }
+                };
+
+                const rzp = new Razorpay(options);
+                rzp.open();
+            } catch (error) {
+                showResponse('paymentResponse', { error: error.message }, true);
+            }
+        }
+
+        // Verify Payment
+        async function verifyPayment() {
+            try {
+                const orderId = document.getElementById('orderId').value;
+                const paymentId = document.getElementById('paymentId').value;
+                const signature = document.getElementById('signature').value;
+
+                if (!orderId || !paymentId || !signature) {
+                    throw new Error('Please fill in all fields');
+                }
+
+                const data = await makeApiCall(`${API_BASE}/verify-payment`, 'POST', {
+                    order_id: orderId,
+                    payment_id: paymentId,
+                    signature: signature
+                });
+
+                showResponse('verifyResponse', data);
+            } catch (error) {
+                showResponse('verifyResponse', { error: error.message }, true);
+            }
+        }
+
+        // Get Payment Details
+        async function getPaymentDetails() {
+            try {
+                const paymentId = document.getElementById('getPaymentId').value;
+                
+                if (!paymentId) {
+                    throw new Error('Please enter payment ID');
+                }
+
+                const data = await makeApiCall(`${API_BASE}/payment/${paymentId}`);
+                showResponse('paymentDetailsResponse', data);
+            } catch (error) {
+                showResponse('paymentDetailsResponse', { error: error.message }, true);
+            }
+        }
+
+        // Get Order Details
+        async function getOrderDetails() {
+            try {
+                const orderId = document.getElementById('getOrderId').value;
+                
+                if (!orderId) {
+                    throw new Error('Please enter order ID');
+                }
+
+                const data = await makeApiCall(`${API_BASE}/order/${orderId}`);
+                showResponse('orderDetailsResponse', data);
+            } catch (error) {
+                showResponse('orderDetailsResponse', { error: error.message }, true);
+            }
+        }
+
+        // Refund Payment
+        async function refundPayment() {
+            try {
+                const paymentId = document.getElementById('refundPaymentId').value;
+                const amount = document.getElementById('refundAmount').value;
+                const notes = document.getElementById('refundNotes').value;
+
+                if (!paymentId) {
+                    throw new Error('Please enter payment ID');
+                }
+
+                const body = {
+                    payment_id: paymentId,
+                    notes: notes ? { reason: notes } : {}
+                };
+
+                if (amount) {
+                    body.amount = parseInt(amount);
+                }
+
+                const data = await makeApiCall(`${API_BASE}/refund`, 'POST', body);
+                showResponse('refundResponse', data);
+            } catch (error) {
+                showResponse('refundResponse', { error: error.message }, true);
+            }
+        }
+
+        // Auto-generate receipt
+        document.getElementById('receipt').value = `receipt_${Date.now()}`;
+    </script>
+</body>
+</html>

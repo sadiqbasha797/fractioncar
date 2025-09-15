@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Book Now Token Purchase Notification - Fraction Admin</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+        .email-container {
+            background-color: #ffffff;
+            padding: 40px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .logo {
+            font-size: 32px;
+            font-weight: bold;
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+        .title {
+            color: #e74c3c;
+            font-size: 28px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .content {
+            margin-bottom: 30px;
+        }
+        .notification-box {
+            background-color: #fdeaea;
+            padding: 20px;
+            border-radius: 5px;
+            margin: 20px 0;
+            border-left: 4px solid #e74c3c;
+        }
+        .user-details {
+            background-color: #f8f9fa;
+            padding: 20px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+        .token-details {
+            background-color: #ecf0f1;
+            padding: 20px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+        .car-details {
+            background-color: #f0f8ff;
+            padding: 20px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+        .amount-highlight {
+            background-color: #f8d7da;
+            padding: 15px;
+            border-radius: 5px;
+            text-align: center;
+            margin: 20px 0;
+            border: 2px solid #e74c3c;
+        }
+        .cta-button {
+            display: inline-block;
+            background-color: #e74c3c;
+            color: white;
+            padding: 12px 30px;
+            text-decoration: none;
+            border-radius: 5px;
+            font-weight: bold;
+            text-align: center;
+            margin: 20px 0;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid #ecf0f1;
+            color: #7f8c8d;
+            font-size: 14px;
+        }
+        .status-badge {
+            display: inline-block;
+            background-color: #e74c3c;
+            color: white;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+        .priority-notice {
+            background-color: #fff3cd;
+            border: 1px solid #ffeaa7;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="email-container">
+        <div class="header">
+            <div class="logo">FRACTION ADMIN</div>
+            <p style="color: #7f8c8d; margin: 0;">Administrative Notification</p>
+        </div>
+        
+        <h1 class="title">🚀 New Book Now Token Purchase</h1>
+        
+        <div class="content">
+            <div class="notification-box">
+                <h3 style="color: #e74c3c; margin-top: 0;">📢 Premium Book Now Token Purchase</h3>
+                <p style="margin: 5px 0;">A user has purchased a premium Book Now Token for immediate car booking access.</p>
+            </div>
+            
+            <div class="priority-notice">
+                <h3 style="color: #856404; margin-top: 0;">⚡ High Priority Transaction</h3>
+                <p style="margin: 5px 0; color: #856404;">This is a premium token purchase that grants immediate booking privileges. Monitor closely for potential bookings.</p>
+            </div>
+            
+            <div class="user-details">
+                <h3 style="color: #2c3e50; margin-top: 0;">Customer Information:</h3>
+                <p><strong>Name:</strong> {{userName}}</p>
+                <p><strong>Email:</strong> {{userEmail}}</p>
+                <p><strong>Phone:</strong> {{userPhone}}</p>
+                <p><strong>User ID:</strong> {{userId}}</p>
+                <p><strong>Purchase Date:</strong> {{purchaseDate}}</p>
+            </div>
+            
+            <div class="token-details">
+                <h3 style="color: #2c3e50; margin-top: 0;">Book Now Token Details:</h3>
+                <p><strong>Token ID:</strong> {{tokenId}}</p>
+                <p><strong>Custom Token ID:</strong> {{customTokenId}}</p>
+                <p><strong>Status:</strong> <span class="status-badge">{{status}}</span></p>
+                <p><strong>Expiry Date:</strong> {{expiryDate}}</p>
+            </div>
+            
+            <div class="car-details">
+                <h3 style="color: #2c3e50; margin-top: 0;">Car Information:</h3>
+                <p><strong>Car Model:</strong> {{carName}}</p>
+                <p><strong>Brand:</strong> {{carBrand}}</p>
+                <p><strong>Year:</strong> {{carYear}}</p>
+                <p><strong>Location:</strong> {{carLocation}}</p>
+                <p><strong>Car ID:</strong> {{carId}}</p>
+            </div>
+            
+            <div class="amount-highlight">
+                <h3 style="margin-top: 0; color: #e74c3c;">Amount Received: ₹{{amountPaid}}</h3>
+                <p style="margin: 5px 0; color: #666;">Premium payment processed successfully</p>
+            </div>
+            
+            <p><strong>Immediate Actions Required:</strong></p>
+            <ul>
+                <li>✅ Book Now Token has been activated</li>
+                <li>📊 Update premium sales records</li>
+                <li>🚗 Ensure car is ready for immediate booking</li>
+                <li>📱 Monitor for potential immediate bookings</li>
+                <li>⚡ Prepare for high-priority customer service</li>
+            </ul>
+            
+            <div style="text-align: center;">
+                <a href="{{adminDashboardLink}}" class="cta-button">View in Admin Dashboard</a>
+            </div>
+        </div>
+        
+        <div class="footer">
+            <p>This is an automated notification from Fraction Admin System.</p>
+            <p style="margin-top: 20px;">
+                <strong>Fraction Admin Team</strong><br>
+                System Generated Notification
+            </p>
+        </div>
+    </div>
+</body>
+</html>

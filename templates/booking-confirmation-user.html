@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Booking Confirmation - Fraction</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+        .email-container {
+            background-color: #ffffff;
+            padding: 40px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .logo {
+            font-size: 32px;
+            font-weight: bold;
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+        .success-title {
+            color: #27ae60;
+            font-size: 28px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .success-icon {
+            font-size: 48px;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .content {
+            margin-bottom: 30px;
+        }
+        .booking-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 25px;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+        .booking-details {
+            background-color: #f8f9fa;
+            padding: 20px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #ecf0f1;
+        }
+        .detail-row:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+            padding-bottom: 0;
+        }
+        .car-details {
+            background-color: #e8f4f8;
+            padding: 20px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+        .cta-button {
+            display: inline-block;
+            background-color: #3498db;
+            color: white;
+            padding: 12px 30px;
+            text-decoration: none;
+            border-radius: 5px;
+            font-weight: bold;
+            text-align: center;
+            margin: 20px 0;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid #ecf0f1;
+            color: #7f8c8d;
+            font-size: 14px;
+        }
+        .important-note {
+            background-color: #fff3cd;
+            border: 1px solid #ffeaa7;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+        .status-badge {
+            display: inline-block;
+            background-color: #27ae60;
+            color: white;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+    </style>
+</head>
+<body>
+    <div class="email-container">
+        <div class="header">
+            <div class="logo">FRACTION</div>
+            <p style="color: #7f8c8d; margin: 0;">Car Sharing Platform</p>
+        </div>
+        
+        <div class="success-icon">🚗</div>
+        <h1 class="success-title">Booking Confirmed!</h1>
+        
+        <div class="content">
+            <p>Dear <strong>{{userName}}</strong>,</p>
+            
+            <p>Great news! Your car booking has been confirmed. Here are your booking details:</p>
+            
+            <div class="booking-card">
+                <h3 style="margin-top: 0; color: white;">{{carName}} - {{carBrand}}</h3>
+                <p style="margin: 0; opacity: 0.9;">Booking ID: <strong>{{bookingId}}</strong></p>
+                <p style="margin: 5px 0 0 0; opacity: 0.9;">Status: <span class="status-badge">{{bookingStatus}}</span></p>
+            </div>
+            
+            <div class="booking-details">
+                <h4 style="color: #2c3e50; margin-top: 0;">📅 Booking Details</h4>
+                
+                <div class="detail-row">
+                    <span><strong>Start Date:</strong></span>
+                    <span>{{bookingFrom}}</span>
+                </div>
+                
+                <div class="detail-row">
+                    <span><strong>End Date:</strong></span>
+                    <span>{{bookingTo}}</span>
+                </div>
+                
+                <div class="detail-row">
+                    <span><strong>Duration:</strong></span>
+                    <span>{{duration}}</span>
+                </div>
+                
+                <div class="detail-row">
+                    <span><strong>Booking Date:</strong></span>
+                    <span>{{bookingDate}}</span>
+                </div>
+                
+                {{#if comments}}
+                <div class="detail-row">
+                    <span><strong>Comments:</strong></span>
+                    <span>{{comments}}</span>
+                </div>
+                {{/if}}
+            </div>
+            
+            <div class="car-details">
+                <h4 style="color: #2c3e50; margin-top: 0;">🚗 Car Information</h4>
+                
+                <div class="detail-row">
+                    <span><strong>Car Model:</strong></span>
+                    <span>{{carName}}</span>
+                </div>
+                
+                <div class="detail-row">
+                    <span><strong>Brand:</strong></span>
+                    <span>{{carBrand}}</span>
+                </div>
+                
+                <div class="detail-row">
+                    <span><strong>Year:</strong></span>
+                    <span>{{carYear}}</span>
+                </div>
+                
+                <div class="detail-row">
+                    <span><strong>Location:</strong></span>
+                    <span>{{carLocation}}</span>
+                </div>
+            </div>
+            
+            <div class="important-note">
+                <h4 style="color: #856404; margin-top: 0;">📋 Important Instructions:</h4>
+                <ul style="margin: 0; padding-left: 20px;">
+                    <li>Please carry a valid driving license and ID proof</li>
+                    <li>Arrive at the pickup location 15 minutes early</li>
+                    <li>Inspect the vehicle before pickup and report any issues</li>
+                    <li>Return the car with the same fuel level as received</li>
+                    <li>Contact support for any assistance: +91-XXXXXXXXXX</li>
+                </ul>
+            </div>
+            
+            <div style="text-align: center;">
+                <a href="{{bookingDetailsLink}}" class="cta-button">View Full Booking Details</a>
+            </div>
+            
+            <p>We hope you have a wonderful experience with your Fraction car!</p>
+        </div>
+        
+        <div class="footer">
+            <p>Thank you for choosing Fraction for your transportation needs.</p>
+            <p>Safe travels! 🛣️</p>
+            <p style="margin-top: 20px;">
+                <strong>Fraction Team</strong><br>
+                Email: support@fraction.com<br>
+                Phone: +91-XXXXXXXXXX
+            </p>
+        </div>
+    </div>
+</body>
+</html>

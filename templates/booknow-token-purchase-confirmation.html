@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Book Now Token Purchase Confirmation - Fraction</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+        .email-container {
+            background-color: #ffffff;
+            padding: 40px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .logo {
+            font-size: 32px;
+            font-weight: bold;
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+        .title {
+            color: #e74c3c;
+            font-size: 28px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .content {
+            margin-bottom: 30px;
+        }
+        .token-details {
+            background-color: #fdf2f2;
+            padding: 20px;
+            border-radius: 5px;
+            margin: 20px 0;
+            border-left: 4px solid #e74c3c;
+        }
+        .car-details {
+            background-color: #f8f9fa;
+            padding: 20px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+        .amount-highlight {
+            background-color: #fdeaea;
+            padding: 15px;
+            border-radius: 5px;
+            text-align: center;
+            margin: 20px 0;
+            border: 2px solid #e74c3c;
+        }
+        .cta-button {
+            display: inline-block;
+            background-color: #e74c3c;
+            color: white;
+            padding: 12px 30px;
+            text-decoration: none;
+            border-radius: 5px;
+            font-weight: bold;
+            text-align: center;
+            margin: 20px 0;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid #ecf0f1;
+            color: #7f8c8d;
+            font-size: 14px;
+        }
+        .status-badge {
+            display: inline-block;
+            background-color: #e74c3c;
+            color: white;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+        .urgent-notice {
+            background-color: #fff3cd;
+            border: 1px solid #ffeaa7;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="email-container">
+        <div class="header">
+            <div class="logo">FRACTION</div>
+            <p style="color: #7f8c8d; margin: 0;">Car Sharing Platform</p>
+        </div>
+        
+        <h1 class="title">🚀 Book Now Token Purchased!</h1>
+        
+        <div class="content">
+            <p>Dear <strong>{{userName}}</strong>,</p>
+            
+            <p>Excellent! Your <strong>Book Now Token</strong> has been successfully purchased. This premium token gives you immediate access to book this car without waiting!</p>
+            
+            <div class="urgent-notice">
+                <h3 style="color: #856404; margin-top: 0;">⚡ Priority Access Granted!</h3>
+                <p style="margin: 5px 0; color: #856404;">You now have immediate booking privileges for this car. Book it now before others do!</p>
+            </div>
+            
+            <div class="token-details">
+                <h3 style="color: #2c3e50; margin-top: 0;">Book Now Token Details:</h3>
+                <p><strong>Token ID:</strong> {{tokenId}}</p>
+                <p><strong>Purchase Date:</strong> {{purchaseDate}}</p>
+                <p><strong>Expiry Date:</strong> {{expiryDate}}</p>
+                <p><strong>Status:</strong> <span class="status-badge">{{status}}</span></p>
+            </div>
+            
+            <div class="car-details">
+                <h3 style="color: #2c3e50; margin-top: 0;">Car Information:</h3>
+                <p><strong>Car Model:</strong> {{carName}}</p>
+                <p><strong>Brand:</strong> {{carBrand}}</p>
+                <p><strong>Year:</strong> {{carYear}}</p>
+                <p><strong>Location:</strong> {{carLocation}}</p>
+            </div>
+            
+            <div class="amount-highlight">
+                <h3 style="margin-top: 0; color: #e74c3c;">Amount Paid: ₹{{amountPaid}}</h3>
+                <p style="margin: 5px 0; color: #666;">Payment successful and token activated</p>
+            </div>
+            
+            <p><strong>What you can do now:</strong></p>
+            <ul>
+                <li>🚗 <strong>Book this car immediately</strong> - no waiting required!</li>
+                <li>📱 Access priority booking features</li>
+                <li>⚡ Skip the waitlist for this specific car</li>
+                <li>⏰ Token valid until {{expiryDate}}</li>
+            </ul>
+            
+            <p><strong>Don't wait!</strong> Book now to secure your preferred dates and times.</p>
+            
+            <div style="text-align: center;">
+                <a href="{{bookingLink}}" class="cta-button">Book This Car Now!</a>
+            </div>
+        </div>
+        
+        <div class="footer">
+            <p>Thank you for choosing Fraction!</p>
+            <p>If you have any questions about your Book Now Token, feel free to contact our support team.</p>
+            <p style="margin-top: 20px;">
+                <strong>Fraction Team</strong><br>
+                Email: support@fraction.com<br>
+                Phone: +91-XXXXXXXXXX
+            </p>
+        </div>
+    </div>
+</body>
+</html>

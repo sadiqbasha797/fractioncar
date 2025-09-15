@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AMC Payment Notification - Fraction Admin</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+        .email-container {
+            background-color: #ffffff;
+            padding: 40px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .logo {
+            font-size: 32px;
+            font-weight: bold;
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+        .title {
+            color: #8e44ad;
+            font-size: 28px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .content {
+            margin-bottom: 30px;
+        }
+        .notification-box {
+            background-color: #f4f0f7;
+            padding: 20px;
+            border-radius: 5px;
+            margin: 20px 0;
+            border-left: 4px solid #8e44ad;
+        }
+        .user-details {
+            background-color: #f8f9fa;
+            padding: 20px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+        .amc-details {
+            background-color: #ecf0f1;
+            padding: 20px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+        .car-details {
+            background-color: #f0f8ff;
+            padding: 20px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+        .amount-highlight {
+            background-color: #e8d5f2;
+            padding: 15px;
+            border-radius: 5px;
+            text-align: center;
+            margin: 20px 0;
+            border: 2px solid #8e44ad;
+        }
+        .cta-button {
+            display: inline-block;
+            background-color: #8e44ad;
+            color: white;
+            padding: 12px 30px;
+            text-decoration: none;
+            border-radius: 5px;
+            font-weight: bold;
+            text-align: center;
+            margin: 20px 0;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid #ecf0f1;
+            color: #7f8c8d;
+            font-size: 14px;
+        }
+        .status-badge {
+            display: inline-block;
+            background-color: #8e44ad;
+            color: white;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+        .year-details {
+            background-color: #e8f5e8;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="email-container">
+        <div class="header">
+            <div class="logo">FRACTION ADMIN</div>
+            <p style="color: #7f8c8d; margin: 0;">Administrative Notification</p>
+        </div>
+        
+        <h1 class="title">🔧 New AMC Payment Received</h1>
+        
+        <div class="content">
+            <div class="notification-box">
+                <h3 style="color: #8e44ad; margin-top: 0;">📢 Annual Maintenance Charges Payment</h3>
+                <p style="margin: 5px 0;">A user has successfully made an AMC payment for their car maintenance coverage.</p>
+            </div>
+            
+            <div class="user-details">
+                <h3 style="color: #2c3e50; margin-top: 0;">Customer Information:</h3>
+                <p><strong>Name:</strong> {{userName}}</p>
+                <p><strong>Email:</strong> {{userEmail}}</p>
+                <p><strong>Phone:</strong> {{userPhone}}</p>
+                <p><strong>User ID:</strong> {{userId}}</p>
+                <p><strong>Payment Date:</strong> {{paymentDate}}</p>
+            </div>
+            
+            <div class="amc-details">
+                <h3 style="color: #2c3e50; margin-top: 0;">AMC Payment Details:</h3>
+                <p><strong>AMC ID:</strong> {{amcId}}</p>
+                <p><strong>Ticket Reference:</strong> {{ticketId}}</p>
+                <p><strong>Status:</strong> <span class="status-badge">{{status}}</span></p>
+                <p><strong>Payment Method:</strong> {{paymentMethod}}</p>
+            </div>
+            
+            <div class="car-details">
+                <h3 style="color: #2c3e50; margin-top: 0;">Car Information:</h3>
+                <p><strong>Car Model:</strong> {{carName}}</p>
+                <p><strong>Brand:</strong> {{carBrand}}</p>
+                <p><strong>Year:</strong> {{carYear}}</p>
+                <p><strong>Registration Number:</strong> {{carRegistration}}</p>
+                <p><strong>Car ID:</strong> {{carId}}</p>
+            </div>
+            
+            <div class="amount-highlight">
+                <h3 style="margin-top: 0; color: #8e44ad;">Total Amount Received: ₹{{totalAmount}}</h3>
+                <p style="margin: 5px 0; color: #666;">AMC payment processed successfully</p>
+            </div>
+            
+            <h3 style="color: #2c3e50;">AMC Coverage Details:</h3>
+            {{#each amcYears}}
+            <div class="year-details">
+                <p><strong>Year {{year}}:</strong> ₹{{amount}} - <span style="color: #27ae60;">✓ Paid on {{paiddate}}</span></p>
+            </div>
+            {{/each}}
+            
+            <p><strong>Administrative Actions Required:</strong></p>
+            <ul>
+                <li>✅ AMC payment has been processed</li>
+                <li>📊 Update financial records and revenue tracking</li>
+                <li>🔧 Schedule maintenance services for covered period</li>
+                <li>📱 Update customer's service privileges</li>
+                <li>📋 Generate service agreement documents</li>
+                <li>🚗 Ensure car is ready for maintenance services</li>
+            </ul>
+            
+            <div style="text-align: center;">
+                <a href="{{adminDashboardLink}}" class="cta-button">View in Admin Dashboard</a>
+            </div>
+        </div>
+        
+        <div class="footer">
+            <p>This is an automated notification from Fraction Admin System.</p>
+            <p style="margin-top: 20px;">
+                <strong>Fraction Admin Team</strong><br>
+                System Generated Notification
+            </p>
+        </div>
+    </div>
+</body>
+</html>
