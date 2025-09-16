@@ -8,10 +8,20 @@ const {
 } = require('../utils/emailService');
 const NotificationService = require('../utils/notificationService');
 
-// Create a new booking (User)
+// Create a new booking (User/Admin/SuperAdmin)
 const createBooking = async (req, res) => {
   try {
-    const { carid, bookingFrom, bookingTo, comments } = req.body;
+    const { carid, bookingFrom, bookingTo, comments, userid, status } = req.body;
+
+    // Determine the user ID for the booking
+    let bookingUserId;
+    if (req.user.role === 'admin' || req.user.role === 'superadmin') {
+      // Admin/SuperAdmin can create bookings for any user
+      bookingUserId = userid || req.user.id;
+    } else {
+      // Regular users can only create bookings for themselves
+      bookingUserId = req.user.id;
+    }
 
     // Check for existing bookings on the selected dates
     const existingBookings = await Booking.find({
@@ -36,10 +46,11 @@ const createBooking = async (req, res) => {
 
     const booking = new Booking({
       carid,
-      userid: req.user.id,
+      userid: bookingUserId,
       bookingFrom,
       bookingTo,
-      comments
+      comments,
+      status: status || 'accepted' // Default to accepted for admin/superadmin created bookings
     });
 
     await booking.save();
@@ -142,6 +153,83 @@ const getBookingById = async (req, res) => {
     });
   } catch (error) {
     logger(`Error in getBookingById: ${error.message}`);
+    res.status(500).json({
+      status: 'failed',
+      body: {},
+      message: 'Internal server error'
+    });
+  }
+};
+
+// Update booking (Admin/SuperAdmin)
+const updateBooking = async (req, res) => {
+  try {
+    const { carid, bookingFrom, bookingTo, comments, status } = req.body;
+    
+    const booking = await Booking.findById(req.params.id);
+    if (!booking) {
+      return res.status(404).json({
+        status: 'failed',
+        body: {},
+        message: 'Booking not found'
+      });
+    }
+    
+    // Only admin/superadmin can update bookings
+    if (req.user.role !== 'admin' && req.user.role !== 'superadmin') {
+      return res.status(403).json({
+        status: 'failed',
+        body: {},
+        message: 'Not authorized to update booking'
+      });
+    }
+    
+    // Check for existing bookings on the selected dates (excluding current booking)
+    if (carid && bookingFrom && bookingTo) {
+      const existingBookings = await Booking.find({
+        _id: { $ne: req.params.id },
+        carid: carid,
+        status: 'accepted',
+        $or: [
+          {
+            bookingFrom: { $lte: new Date(bookingTo) },
+            bookingTo: { $gte: new Date(bookingFrom) }
+          }
+        ]
+      });
+
+      if (existingBookings.length > 0) {
+        return res.status(400).json({
+          status: 'failed',
+          body: {},
+          message: 'No vacancy available on the selected dates. Please choose different dates.'
+        });
+      }
+    }
+    
+    // Update booking fields
+    if (carid) booking.carid = carid;
+    if (bookingFrom) booking.bookingFrom = bookingFrom;
+    if (bookingTo) booking.bookingTo = bookingTo;
+    if (comments !== undefined) booking.comments = comments;
+    if (status) {
+      booking.status = status;
+      booking.acceptedby = req.user.id;
+      booking.acceptedByModel = req.user.role === 'superadmin' ? 'SuperAdmin' : 'Admin';
+    }
+    
+    await booking.save();
+    
+    const updatedBooking = await Booking.findById(req.params.id)
+      .populate('carid userid');
+    
+    res.json({
+      status: 'success',
+      body: { booking: updatedBooking },
+      message: 'Booking updated successfully'
+    });
+  } catch (error) {
+    logger(`Error in updateBooking: ${error.message}`);
     res.status(500).json({
       status: 'failed',
       body: {},
@@ -319,6 +407,7 @@ module.exports = {
   createBooking,
   getBookings,
   getBookingById,
+  updateBooking,
   updateBookingStatus,
   deleteBooking,
   getCarBookings,
