@@ -643,6 +643,78 @@ const sendSuperAdminBookingNotification = async (userDetails, bookingDetails, ca
   }
 };
 
+// Send refund initiated notification
+const sendRefundInitiated = async (to, data) => {
+  try {
+    const template = readTemplate('refund-initiated');
+    const htmlContent = replacePlaceholders(template, data);
+    
+    return await sendEmail(
+      to,
+      'Refund Initiated - FractionCars',
+      htmlContent
+    );
+  } catch (error) {
+    logger(`Error sending refund initiated email: ${error.message}`);
+    throw error;
+  }
+};
+
+// Send refund processed notification
+const sendRefundProcessed = async (to, data) => {
+  try {
+    const template = readTemplate('refund-processed');
+    const htmlContent = replacePlaceholders(template, data);
+    
+    return await sendEmail(
+      to,
+      'Refund Processed - FractionCars',
+      htmlContent
+    );
+  } catch (error) {
+    logger(`Error sending refund processed email: ${error.message}`);
+    throw error;
+  }
+};
+
+// Send refund successful notification
+const sendRefundSuccessful = async (to, data) => {
+  try {
+    const template = readTemplate('refund-successful');
+    const htmlContent = replacePlaceholders(template, data);
+    
+    return await sendEmail(
+      to,
+      'Refund Successful - FractionCars',
+      htmlContent
+    );
+  } catch (error) {
+    logger(`Error sending refund successful email: ${error.message}`);
+    throw error;
+  }
+};
+
+// Generic refund notification sender
+const sendRefundNotification = async (to, data) => {
+  try {
+    const { status } = data;
+    
+    switch (status) {
+      case 'initiated':
+        return await sendRefundInitiated(to, data);
+      case 'processed':
+        return await sendRefundProcessed(to, data);
+      case 'successful':
+        return await sendRefundSuccessful(to, data);
+      default:
+        throw new Error(`Unknown refund status: ${status}`);
+    }
+  } catch (error) {
+    logger(`Error sending refund notification: ${error.message}`);
+    throw error;
+  }
+};
+
 // Test email function
 const sendTestEmail = async (to) => {
   try {
@@ -684,5 +756,9 @@ module.exports = {
   sendSuperAdminBookNowTokenPurchaseNotification,
   sendSuperAdminAMCPaymentNotification,
   sendSuperAdminBookingNotification,
+  sendRefundInitiated,
+  sendRefundProcessed,
+  sendRefundSuccessful,
+  sendRefundNotification,
   sendTestEmail
 };

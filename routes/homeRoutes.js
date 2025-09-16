@@ -15,8 +15,14 @@ router.get('/brands/public', homeController.getPublicBrands);
 // Public routes for Simple Steps
 router.get('/simple-steps/public', homeController.getPublicSimpleSteps);
 
+// Public routes for Simple Steps Section
+router.get('/simple-steps-section/public', homeController.getPublicSimpleStepsSection);
+
 // Public routes for FAQs
 router.get('/faqs/public', homeController.getPublicFaqs);
+
+// Public routes for Featured Cars
+router.get('/featured-cars/public', homeController.getPublicFeaturedCars);
 
 // ==================== PROTECTED ROUTES (Admin/SuperAdmin) ====================
 
@@ -74,6 +80,14 @@ router.put('/simple-steps/:id', homeController.updateSimpleStep);
 // Delete Simple Step by ID
 router.delete('/simple-steps/:id', homeController.deleteSimpleStep);
 
+// ==================== SIMPLE STEPS SECTION ROUTES ====================
+
+// Create or Update Simple Steps Section
+router.post('/simple-steps-section', upload.single('video'), homeController.createOrUpdateSimpleStepsSection);
+
+// Get Simple Steps Section
+router.get('/simple-steps-section', homeController.getSimpleStepsSection);
+
 // ==================== FAQ ROUTES ====================
 
 // Create a new FAQ
@@ -90,5 +104,16 @@ router.put('/faqs/:id', homeController.updateFaq);
 
 // Delete FAQ by ID
 router.delete('/faqs/:id', homeController.deleteFaq);
+
+// ==================== FEATURED CARS ROUTES ====================
+
+// Add a car to featured cars
+router.post('/featured-cars', homeController.addFeaturedCar);
+
+// Get all featured cars
+router.get('/featured-cars', homeController.getFeaturedCars);
+
+// Remove a car from featured cars
+router.delete('/featured-cars/:carId', homeController.removeFeaturedCar);
 
 module.exports = router;

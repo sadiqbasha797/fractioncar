@@ -11,7 +11,16 @@ const NotificationService = require('../utils/notificationService');
 // Create a new token (Admin/SuperAdmin can create for any user, User can create for themselves)
 const createToken = async (req, res) => {
   try {
-    const { carid, customtokenid, amountpaid, expirydate, status } = req.body;
+    const { 
+      carid, 
+      customtokenid, 
+      amountpaid, 
+      expirydate, 
+      status,
+      paymentTransactionId,
+      razorpayOrderId,
+      razorpayPaymentId
+    } = req.body;
     
     // Determine userid based on role
     let userid;
@@ -54,14 +63,27 @@ const createToken = async (req, res) => {
       });
     }
 
-    const token = new Token({
+    const tokenData = {
       carid,
       customtokenid,
       userid,
       amountpaid,
       expirydate,
       status
-    });
+    };
+
+    // Add payment fields only if they are provided
+    if (paymentTransactionId) {
+      tokenData.paymentTransactionId = paymentTransactionId;
+    }
+    if (razorpayOrderId) {
+      tokenData.razorpayOrderId = razorpayOrderId;
+    }
+    if (razorpayPaymentId) {
+      tokenData.razorpayPaymentId = razorpayPaymentId;
+    }
+
+    const token = new Token(tokenData);
 
     await token.save();
 

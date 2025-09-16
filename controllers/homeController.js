@@ -1,7 +1,10 @@
 const HeroContent = require('../models/HeroContent');
 const Brands = require('../models/Brands');
 const SimpleSteps = require('../models/SimpleSteps');
+const SimpleStepsSection = require('../models/SimpleStepsSection');
 const FAQ = require('../models/FAQ');
+const FeaturedCars = require('../models/FeaturedCars');
+const Car = require('../models/Car');
 const cloudinary = require('../config/cloudinary');
 const fs = require('fs');
 const logger = require('../utils/logger');
@@ -471,6 +474,128 @@ const deleteSimpleStep = async (req, res) => {
   }
 };
 
+// ==================== SIMPLE STEPS SECTION CRUD ====================
+
+// Create or Update Simple Steps Section
+const createOrUpdateSimpleStepsSection = async (req, res) => {
+  try {
+    const { sectionTitle, sectionDescription } = req.body;
+    let video = req.body.video; // Default to provided URL
+
+    // Handle video upload if file is provided
+    if (req.file) {
+      try {
+        const result = await cloudinary.uploader.upload(req.file.path, {
+          resource_type: "video"
+        });
+        video = result.secure_url;
+        // Delete the temporary file
+        fs.unlinkSync(req.file.path);
+      } catch (uploadError) {
+        logger(`Error uploading video to Cloudinary: ${uploadError.message}`);
+        return res.status(500).json({
+          status: 'failed',
+          body: {},
+          message: 'Error uploading video'
+        });
+      }
+    }
+
+    // Check if section already exists
+    let section = await SimpleStepsSection.findOne();
+    
+    if (section) {
+      // Update existing section
+      section.sectionTitle = sectionTitle || section.sectionTitle;
+      section.sectionDescription = sectionDescription || section.sectionDescription;
+      if (video) section.video = video;
+      section.updatedAt = Date.now();
+      await section.save();
+    } else {
+      // Create new section
+      section = new SimpleStepsSection({
+        sectionTitle: sectionTitle || "Simple Steps",
+        sectionDescription,
+        video,
+        createdBy: req.user.id
+      });
+      await section.save();
+    }
+
+    res.json({
+      status: 'success',
+      body: { section },
+      message: 'Simple steps section updated successfully'
+    });
+  } catch (error) {
+    logger(`Error in createOrUpdateSimpleStepsSection: ${error.message}`);
+    res.status(500).json({
+      status: 'failed',
+      body: {},
+      message: 'Internal server error'
+    });
+  }
+};
+
+// Get Simple Steps Section
+const getSimpleStepsSection = async (req, res) => {
+  try {
+    let section = await SimpleStepsSection.findOne().populate('createdBy', 'name email');
+    
+    if (!section) {
+      // Create default section if none exists
+      section = new SimpleStepsSection({
+        sectionTitle: "Simple Steps",
+        sectionDescription: "Follow these simple steps to get started",
+        createdBy: req.user?.id
+      });
+      await section.save();
+    }
+
+    res.json({
+      status: 'success',
+      body: { section },
+      message: 'Simple steps section retrieved successfully'
+    });
+  } catch (error) {
+    logger(`Error in getSimpleStepsSection: ${error.message}`);
+    res.status(500).json({
+      status: 'failed',
+      body: {},
+      message: 'Internal server error'
+    });
+  }
+};
+
+// Get Simple Steps Section (Public)
+const getPublicSimpleStepsSection = async (req, res) => {
+  try {
+    let section = await SimpleStepsSection.findOne();
+    
+    if (!section) {
+      // Return default section data if none exists
+      section = {
+        sectionTitle: "Simple Steps",
+        sectionDescription: "Follow these simple steps to get started",
+        video: null
+      };
+    }
+
+    res.json({
+      status: 'success',
+      body: { section },
+      message: 'Simple steps section retrieved successfully'
+    });
+  } catch (error) {
+    logger(`Error in getPublicSimpleStepsSection: ${error.message}`);
+    res.status(500).json({
+      status: 'failed',
+      body: {},
+      message: 'Internal server error'
+    });
+  }
+};
+
 // ==================== FAQ CRUD (MOVED FROM FAQ CONTROLLER) ====================
 
 // Create a new FAQ
@@ -674,6 +799,145 @@ const getPublicFaqs = async (req, res) => {
   }
 };
 
+// ==================== FEATURED CARS CRUD ====================
+
+// Add a car to featured cars
+const addFeaturedCar = async (req, res) => {
+  try {
+    const { carId } = req.body;
+
+    // Validate carId
+    if (!carId) {
+      return res.status(400).json({
+        status: 'failed',
+        body: {},
+        message: 'Car ID is required'
+      });
+    }
+
+    // Check if car exists
+    const car = await Car.findById(carId);
+    if (!car) {
+      return res.status(404).json({
+        status: 'failed',
+        body: {},
+        message: 'Car not found'
+      });
+    }
+
+    // Check if car is already featured
+    const existingFeaturedCar = await FeaturedCars.findOne({ carId });
+    if (existingFeaturedCar) {
+      return res.status(400).json({
+        status: 'failed',
+        body: {},
+        message: 'Car is already featured'
+      });
+    }
+
+    // Add car to featured cars
+    const featuredCar = new FeaturedCars({
+      carId,
+      createdBy: req.user.id,
+      createdByModel: req.user.role === 'SuperAdmin' ? 'SuperAdmin' : 'Admin'
+    });
+
+    await featuredCar.save();
+
+    // Populate the car details
+    await featuredCar.populate('carId');
+
+    res.status(201).json({
+      status: 'success',
+      body: { featuredCar },
+      message: 'Car added to featured cars successfully'
+    });
+  } catch (error) {
+    logger(`Error in addFeaturedCar: ${error.message}`);
+    res.status(500).json({
+      status: 'failed',
+      body: {},
+      message: 'Internal server error'
+    });
+  }
+};
+
+// Remove a car from featured cars
+const removeFeaturedCar = async (req, res) => {
+  try {
+    const { carId } = req.params;
+
+    // Find and delete the featured car
+    const featuredCar = await FeaturedCars.findOneAndDelete({ carId });
+    
+    if (!featuredCar) {
+      return res.status(404).json({
+        status: 'failed',
+        body: {},
+        message: 'Featured car not found'
+      });
+    }
+
+    res.json({
+      status: 'success',
+      body: {},
+      message: 'Car removed from featured cars successfully'
+    });
+  } catch (error) {
+    logger(`Error in removeFeaturedCar: ${error.message}`);
+    res.status(500).json({
+      status: 'failed',
+      body: {},
+      message: 'Internal server error'
+    });
+  }
+};
+
+// Get all featured cars
+const getFeaturedCars = async (req, res) => {
+  try {
+    const featuredCars = await FeaturedCars.find()
+      .populate('carId')
+      .populate('createdBy', 'name email')
+      .sort({ createdAt: -1 });
+
+    res.json({
+      status: 'success',
+      body: { featuredCars },
+      message: 'Featured cars retrieved successfully'
+    });
+  } catch (error) {
+    logger(`Error in getFeaturedCars: ${error.message}`);
+    res.status(500).json({
+      status: 'failed',
+      body: {},
+      message: 'Internal server error'
+    });
+  }
+};
+
+// Get featured cars (Public)
+const getPublicFeaturedCars = async (req, res) => {
+  try {
+    const featuredCars = await FeaturedCars.find()
+      .populate('carId')
+      .sort({ createdAt: -1 });
+
+    res.json({
+      status: 'success',
+      body: { featuredCars },
+      message: 'Featured cars retrieved successfully'
+    });
+  } catch (error) {
+    logger(`Error in getPublicFeaturedCars: ${error.message}`);
+    res.status(500).json({
+      status: 'failed',
+      body: {},
+      message: 'Internal server error'
+    });
+  }
+};
+
 module.exports = {
   // Hero Content CRUD
   createHeroContent,
@@ -696,6 +960,10 @@ module.exports = {
   updateSimpleStep,
   deleteSimpleStep,
   
+  // Simple Steps Section CRUD
+  createOrUpdateSimpleStepsSection,
+  getSimpleStepsSection,
+  
   // FAQ CRUD
   createFaq,
   getFaqs,
@@ -703,9 +971,16 @@ module.exports = {
   updateFaq,
   deleteFaq,
   
+  // Featured Cars CRUD
+  addFeaturedCar,
+  removeFeaturedCar,
+  getFeaturedCars,
+  
   // Public APIs
   getPublicHeroContent,
   getPublicBrands,
   getPublicSimpleSteps,
-  getPublicFaqs
+  getPublicSimpleStepsSection,
+  getPublicFaqs,
+  getPublicFeaturedCars
 };

@@ -32,6 +32,37 @@ const bookNowTokenSchema = new mongoose.Schema({
         type: String,
         enum: ['active', 'expired', 'dropped'],
         default: 'active'
+    },
+    // Payment transaction details
+    paymentTransactionId: {
+        type: String,
+        required: false
+    },
+    razorpayOrderId: {
+        type: String,
+        required: false
+    },
+    razorpayPaymentId: {
+        type: String,
+        required: false
+    },
+    // Refund details
+    refundDetails: {
+        refundId: String,
+        refundAmount: Number,
+        refundStatus: {
+            type: String,
+            enum: ['none', 'initiated', 'processed', 'successful', 'failed'],
+            default: 'none'
+        },
+        refundInitiatedAt: Date,
+        refundProcessedAt: Date,
+        refundCompletedAt: Date,
+        refundReason: String,
+        refundedBy: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'SuperAdmin'
+        }
     }
 }, {
     timestamps: true
@@ -44,6 +75,7 @@ bookNowTokenSchema.index({ carid: 1 });
 bookNowTokenSchema.index({ userid: 1 });
 bookNowTokenSchema.index({ status: 1, createdAt: 1 });
 
-const BookNowToken = mongoose.model('BookNowToken', bookNowTokenSchema);
+// Check if model already exists to prevent OverwriteModelError
+const BookNowToken = mongoose.models.BookNowToken || mongoose.model('BookNowToken', bookNowTokenSchema);
 
 module.exports = BookNowToken;
