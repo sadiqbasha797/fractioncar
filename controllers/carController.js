@@ -2,6 +2,7 @@ const Car = require('../models/Car');
 const logger = require('../utils/logger');
 const cloudinary = require('../config/cloudinary');
 const fs = require('fs');
+const { deleteImagesFromCloudinary } = require('../utils/imageUtils');
 
 // Create a new car
 const createCar = async (req, res) => {
@@ -194,8 +195,27 @@ const updateCar = async (req, res) => {
       });
     }
 
-    // Handle image uploads if provided
+    // Handle image updates
     let images = car.images || [];
+    let imagesToDelete = [];
+    
+    // If images array is provided in the request body, use it (for updates/deletions)
+    if (req.body.images) {
+      try {
+        const newImages = JSON.parse(req.body.images);
+        
+        // Find images that were removed (exist in old array but not in new array)
+        const oldImages = car.images || [];
+        imagesToDelete = oldImages.filter(oldImage => !newImages.includes(oldImage));
+        
+        images = newImages;
+      } catch (parseError) {
+        logger(`Error parsing images array: ${parseError.message}`);
+        // Keep existing images if parsing fails
+      }
+    }
+    
+    // Handle new image uploads if provided
     if (req.files && req.files.length > 0) {
       for (const file of req.files) {
         try {
@@ -241,6 +261,17 @@ const updateCar = async (req, res) => {
       { new: true }
     );
 
+    // Delete removed images from Cloudinary
+    if (imagesToDelete.length > 0) {
+      try {
+        const deleteResults = await deleteImagesFromCloudinary(imagesToDelete);
+        logger(`Image deletion results - Success: ${deleteResults.success.length}, Failed: ${deleteResults.failed.length}`);
+      } catch (deleteError) {
+        logger(`Error deleting images from Cloudinary: ${deleteError.message}`);
+        // Don't fail the request if image deletion fails
+      }
+    }
+
     res.json({
       status: 'success',
       body: { car: updatedCar },
@@ -276,6 +307,17 @@ const deleteCar = async (req, res) => {
         body: {},
         message: 'Not authorized to delete this car'
       });
+    }
+
+    // Delete all car images from Cloudinary before deleting the car
+    if (car.images && car.images.length > 0) {
+      try {
+        const deleteResults = await deleteImagesFromCloudinary(car.images);
+        logger(`Car deletion - Image deletion results - Success: ${deleteResults.success.length}, Failed: ${deleteResults.failed.length}`);
+      } catch (deleteError) {
+        logger(`Error deleting car images from Cloudinary: ${deleteError.message}`);
+        // Continue with car deletion even if image deletion fails
+      }
     }
 
     await Car.findByIdAndDelete(req.params.id);
