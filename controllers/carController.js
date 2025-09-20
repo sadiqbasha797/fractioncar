@@ -153,6 +153,7 @@ const getCarById = async (req, res) => {
 // Update a car by ID
 const updateCar = async (req, res) => {
   try {
+
     const {
       carname,
       color,
@@ -199,8 +200,8 @@ const updateCar = async (req, res) => {
     let images = car.images || [];
     let imagesToDelete = [];
     
-    // If images array is provided in the request body, use it (for updates/deletions)
-    if (req.body.images) {
+    // Check if we have existing images data (JSON string) in the request body
+    if (req.body.images && typeof req.body.images === 'string') {
       try {
         const newImages = JSON.parse(req.body.images);
         

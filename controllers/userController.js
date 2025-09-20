@@ -227,6 +227,226 @@ const updateGovernmentId = async (req, res) => {
   }
 };
 
+// Create user (for admin/superadmin)
+const createUser = async (req, res) => {
+  try {
+    // Check if user has admin or superadmin role
+    if (req.user.role !== 'admin' && req.user.role !== 'superadmin') {
+      return res.status(403).json({
+        status: 'failed',
+        body: {},
+        message: 'Access denied. Admin or Superadmin role required.'
+      });
+    }
+
+    const { name, email, password, phone, dateofbirth, address, location, pincode } = req.body;
+
+    // Validate required fields
+    if (!name || !email || !password) {
+      return res.status(400).json({
+        status: 'failed',
+        body: {},
+        message: 'Name, email, and password are required'
+      });
+    }
+
+    // Check if user already exists
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      return res.status(400).json({
+        status: 'failed',
+        body: {},
+        message: 'User with this email already exists'
+      });
+    }
+
+    // Hash password
+    const bcrypt = require('bcrypt');
+    const saltRounds = 10;
+    const hashedPassword = await bcrypt.hash(password, saltRounds);
+
+    // Generate verification code
+    const verificationCode = generateVerificationCode();
+    const tokenExpiry = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
+
+    // Create new user
+    const user = new User({
+      name,
+      email,
+      password: hashedPassword,
+      phone,
+      dateofbirth,
+      address,
+      location,
+      pincode,
+      logintoken: verificationCode,
+      tokensExpiry: tokenExpiry,
+      verified: false
+    });
+
+    await user.save();
+
+    // Send verification email
+    try {
+      await sendVerificationEmail(user, verificationCode);
+    } catch (emailError) {
+      logger(`Failed to send verification email: ${emailError.message}`);
+    }
+
+    res.status(201).json({
+      status: 'success',
+      body: {
+        user: {
+          _id: user._id,
+          name: user.name,
+          email: user.email,
+          phone: user.phone,
+          dateofbirth: user.dateofbirth,
+          address: user.address,
+          location: user.location,
+          pincode: user.pincode,
+          kycStatus: user.kycStatus,
+          verified: user.verified
+        }
+      },
+      message: 'User created successfully. Verification email sent.'
+    });
+  } catch (error) {
+    logger(`Error in createUser: ${error.message}`);
+    res.status(500).json({
+      status: 'failed',
+      body: {},
+      message: 'Internal server error'
+    });
+  }
+};
+
+// Update user by ID (for admin/superadmin)
+const updateUserById = async (req, res) => {
+  try {
+    // Check if user has admin or superadmin role
+    if (req.user.role !== 'admin' && req.user.role !== 'superadmin') {
+      return res.status(403).json({
+        status: 'failed',
+        body: {},
+        message: 'Access denied. Admin or Superadmin role required.'
+      });
+    }
+
+    const { userId } = req.params;
+    const { name, email, password, phone, dateofbirth, address, location, pincode } = req.body;
+
+    // Find the user to update
+    const userToUpdate = await User.findById(userId);
+    if (!userToUpdate) {
+      return res.status(404).json({
+        status: 'failed',
+        body: {},
+        message: 'User not found'
+      });
+    }
+
+    // Build update object
+    const updateFields = {};
+    if (name) updateFields.name = name;
+    if (phone) updateFields.phone = phone;
+    if (dateofbirth) updateFields.dateofbirth = dateofbirth;
+    if (address) updateFields.address = address;
+    if (location) updateFields.location = location;
+    if (pincode) updateFields.pincode = pincode;
+
+    // Handle email change
+    if (email && email !== userToUpdate.email) {
+      const existing = await User.findOne({ email, _id: { $ne: userId } });
+      if (existing) {
+        return res.status(400).json({
+          status: 'failed',
+          body: {},
+          message: 'Email is already in use by another account'
+        });
+      }
+      updateFields.email = email;
+      updateFields.verified = false; // Require re-verification on email change
+    }
+
+    // Handle password change
+    if (password) {
+      const bcrypt = require('bcrypt');
+      const saltRounds = 10;
+      updateFields.password = await bcrypt.hash(password, saltRounds);
+    }
+
+    const updatedUser = await User.findByIdAndUpdate(
+      userId,
+      { $set: updateFields },
+      { new: true, runValidators: true }
+    ).select('-password');
+
+    if (!updatedUser) {
+      return res.status(404).json({
+        status: 'failed',
+        body: {},
+        message: 'User not found'
+      });
+    }
+
+    res.json({
+      status: 'success',
+      body: { user: updatedUser },
+      message: 'User updated successfully'
+    });
+  } catch (error) {
+    logger(`Error in updateUserById: ${error.message}`);
+    res.status(500).json({
+      status: 'failed',
+      body: {},
+      message: 'Internal server error'
+    });
+  }
+};
+
+// Delete user by ID (for admin/superadmin)
+const deleteUserById = async (req, res) => {
+  try {
+    // Check if user has admin or superadmin role
+    if (req.user.role !== 'admin' && req.user.role !== 'superadmin') {
+      return res.status(403).json({
+        status: 'failed',
+        body: {},
+        message: 'Access denied. Admin or Superadmin role required.'
+      });
+    }
+
+    const { userId } = req.params;
+
+    // Find the user to delete
+    const userToDelete = await User.findById(userId);
+    if (!userToDelete) {
+      return res.status(404).json({
+        status: 'failed',
+        body: {},
+        message: 'User not found'
+      });
+    }
+
+    // Delete the user
+    await User.findByIdAndDelete(userId);
+
+    res.json({
+      status: 'success',
+      body: {},
+      message: 'User deleted successfully'
+    });
+  } catch (error) {
+    logger(`Error in deleteUserById: ${error.message}`);
+    res.status(500).json({
+      status: 'failed',
+      body: {},
+      message: 'Internal server error'
+    });
+  }
+};
+
 // Get all users (for admin/superadmin)
 const getAllUsers = async (req, res) => {
   try {
@@ -261,5 +481,8 @@ module.exports = {
   updateProfile,
   uploadProfileImage,
   updateGovernmentId,
+  createUser,
+  updateUserById,
+  deleteUserById,
   getAllUsers
 };

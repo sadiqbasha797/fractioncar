@@ -22,4 +22,13 @@ router.put('/profile/government-id', userController.updateGovernmentId);
 // Get all users (admin/superadmin only)
 router.get('/', userController.getAllUsers);
 
+// Create user (admin/superadmin only)
+router.post('/', userController.createUser);
+
+// Update user by ID (admin/superadmin only)
+router.put('/:userId', userController.updateUserById);
+
+// Delete user by ID (admin/superadmin only)
+router.delete('/:userId', userController.deleteUserById);
+
 module.exports = router;

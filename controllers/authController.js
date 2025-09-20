@@ -176,13 +176,16 @@ const registerAdmin = async (req, res) => {
     const saltRounds = 10;
     const hashedPassword = await bcrypt.hash(password, saltRounds);
 
-    // Create new admin
+    // Create new admin with default permissions if none provided
+    const defaultPermissions = ['dashboard', 'cars', 'bookings', 'tickets', 'users', 'tokens', 'contact-forms', 'notifications'];
+    const adminPermissions = permissions && permissions.length > 0 ? permissions : defaultPermissions;
+    
     const admin = new Admin({
       name,
       email,
       password: hashedPassword,
       phone,
-      permissions
+      permissions: adminPermissions
     });
 
     await admin.save();
