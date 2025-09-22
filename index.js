@@ -48,6 +48,10 @@ app.use('/api/auth', authRoutes);
 const carRoutes = require('./routes/carRoutes');
 app.use('/api/cars', carRoutes);
 
+// Pincode routes
+const pincodeRoutes = require('./routes/pincodeRoutes');
+app.use('/api/pincode', pincodeRoutes);
+
 // Ticket routes
 const ticketRoutes = require('./routes/ticketRoutes');
 app.use('/api/tickets', ticketRoutes);
