@@ -3,6 +3,7 @@ const logger = require('../utils/logger');
 const cloudinary = require('../config/cloudinary');
 const fs = require('fs');
 const { sendVerificationEmail } = require('../utils/emailService');
+const UserStatusService = require('../utils/userStatusService');
 
 // Local helper to generate a 6-digit verification code
 const generateVerificationCode = () => {
@@ -476,6 +477,291 @@ const getAllUsers = async (req, res) => {
   }
 };
 
+// Suspend user (admin/superadmin only)
+const suspendUser = async (req, res) => {
+  try {
+    // Check if user has admin or superadmin role
+    if (req.user.role !== 'admin' && req.user.role !== 'superadmin') {
+      return res.status(403).json({
+        status: 'failed',
+        body: {},
+        message: 'Access denied. Admin or Superadmin role required.'
+      });
+    }
+
+    const { userId } = req.params;
+    const { reason } = req.body;
+
+    if (!reason) {
+      return res.status(400).json({
+        status: 'failed',
+        body: {},
+        message: 'Suspension reason is required'
+      });
+    }
+
+    const changedBy = {
+      id: req.user.id,
+      role: req.user.role,
+      name: req.user.name || 'Admin',
+      email: req.user.email || 'admin@fraction.com'
+    };
+
+    const user = await UserStatusService.suspendUser(userId, reason, changedBy);
+
+    res.json({
+      status: 'success',
+      body: { 
+        user: {
+          _id: user._id,
+          name: user.name,
+          email: user.email,
+          status: user.status,
+          suspensionEndDate: user.suspensionEndDate,
+          suspensionReason: user.suspensionReason
+        }
+      },
+      message: 'User suspended successfully for 7 days'
+    });
+  } catch (error) {
+    logger(`Error in suspendUser: ${error.message}`);
+    res.status(500).json({
+      status: 'failed',
+      body: {},
+      message: error.message || 'Internal server error'
+    });
+  }
+};
+
+// Deactivate user (admin/superadmin only)
+const deactivateUser = async (req, res) => {
+  try {
+    // Check if user has admin or superadmin role
+    if (req.user.role !== 'admin' && req.user.role !== 'superadmin') {
+      return res.status(403).json({
+        status: 'failed',
+        body: {},
+        message: 'Access denied. Admin or Superadmin role required.'
+      });
+    }
+
+    const { userId } = req.params;
+    const { reason } = req.body;
+
+    if (!reason) {
+      return res.status(400).json({
+        status: 'failed',
+        body: {},
+        message: 'Deactivation reason is required'
+      });
+    }
+
+    const changedBy = {
+      id: req.user.id,
+      role: req.user.role,
+      name: req.user.name || 'Admin',
+      email: req.user.email || 'admin@fraction.com'
+    };
+
+    const user = await UserStatusService.deactivateUser(userId, reason, changedBy);
+
+    res.json({
+      status: 'success',
+      body: { 
+        user: {
+          _id: user._id,
+          name: user.name,
+          email: user.email,
+          status: user.status,
+          deactivationReason: user.deactivationReason
+        }
+      },
+      message: 'User deactivated successfully'
+    });
+  } catch (error) {
+    logger(`Error in deactivateUser: ${error.message}`);
+    res.status(500).json({
+      status: 'failed',
+      body: {},
+      message: error.message || 'Internal server error'
+    });
+  }
+};
+
+// Reactivate user (admin/superadmin only)
+const reactivateUser = async (req, res) => {
+  try {
+    // Check if user has admin or superadmin role
+    if (req.user.role !== 'admin' && req.user.role !== 'superadmin') {
+      return res.status(403).json({
+        status: 'failed',
+        body: {},
+        message: 'Access denied. Admin or Superadmin role required.'
+      });
+    }
+
+    const { userId } = req.params;
+    const { reason } = req.body;
+
+    if (!reason) {
+      return res.status(400).json({
+        status: 'failed',
+        body: {},
+        message: 'Reactivation reason is required'
+      });
+    }
+
+    const changedBy = {
+      id: req.user.id,
+      role: req.user.role,
+      name: req.user.name || 'Admin',
+      email: req.user.email || 'admin@fraction.com'
+    };
+
+    const user = await UserStatusService.reactivateUser(userId, reason, changedBy);
+
+    res.json({
+      status: 'success',
+      body: { 
+        user: {
+          _id: user._id,
+          name: user.name,
+          email: user.email,
+          status: user.status
+        }
+      },
+      message: 'User reactivated successfully'
+    });
+  } catch (error) {
+    logger(`Error in reactivateUser: ${error.message}`);
+    res.status(500).json({
+      status: 'failed',
+      body: {},
+      message: error.message || 'Internal server error'
+    });
+  }
+};
+
+// Get users by status (admin/superadmin only)
+const getUsersByStatus = async (req, res) => {
+  try {
+    // Check if user has admin or superadmin role
+    if (req.user.role !== 'admin' && req.user.role !== 'superadmin') {
+      return res.status(403).json({
+        status: 'failed',
+        body: {},
+        message: 'Access denied. Admin or Superadmin role required.'
+      });
+    }
+
+    const { status } = req.params;
+    const { page = 1, limit = 20 } = req.query;
+
+    if (!['active', 'suspended', 'deactivated'].includes(status)) {
+      return res.status(400).json({
+        status: 'failed',
+        body: {},
+        message: 'Invalid status. Must be active, suspended, or deactivated'
+      });
+    }
+
+    const result = await UserStatusService.getUsersByStatus(status, parseInt(page), parseInt(limit));
+
+    res.json({
+      status: 'success',
+      body: result,
+      message: `${status} users retrieved successfully`
+    });
+  } catch (error) {
+    logger(`Error in getUsersByStatus: ${error.message}`);
+    res.status(500).json({
+      status: 'failed',
+      body: {},
+      message: 'Internal server error'
+    });
+  }
+};
+
+// Get user status history (admin/superadmin only)
+const getUserStatusHistory = async (req, res) => {
+  try {
+    // Check if user has admin or superadmin role
+    if (req.user.role !== 'admin' && req.user.role !== 'superadmin') {
+      return res.status(403).json({
+        status: 'failed',
+        body: {},
+        message: 'Access denied. Admin or Superadmin role required.'
+      });
+    }
+
+    const { userId } = req.params;
+    const history = await UserStatusService.getUserStatusHistory(userId);
+
+    res.json({
+      status: 'success',
+      body: { history },
+      message: 'User status history retrieved successfully'
+    });
+  } catch (error) {
+    logger(`Error in getUserStatusHistory: ${error.message}`);
+    res.status(500).json({
+      status: 'failed',
+      body: {},
+      message: error.message || 'Internal server error'
+    });
+  }
+};
+
+// Get suspension statistics (admin/superadmin only)
+const getSuspensionStats = async (req, res) => {
+  try {
+    // Check if user has admin or superadmin role
+    if (req.user.role !== 'admin' && req.user.role !== 'superadmin') {
+      return res.status(403).json({
+        status: 'failed',
+        body: {},
+        message: 'Access denied. Admin or Superadmin role required.'
+      });
+    }
+
+    const stats = await UserStatusService.getSuspensionStats();
+
+    res.json({
+      status: 'success',
+      body: { stats },
+      message: 'Suspension statistics retrieved successfully'
+    });
+  } catch (error) {
+    logger(`Error in getSuspensionStats: ${error.message}`);
+    res.status(500).json({
+      status: 'failed',
+      body: {},
+      message: 'Internal server error'
+    });
+  }
+};
+
+// Check user action permissions
+const checkUserPermissions = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const permissions = await UserStatusService.canUserPerformActions(userId);
+
+    res.json({
+      status: 'success',
+      body: { permissions },
+      message: 'User permissions checked successfully'
+    });
+  } catch (error) {
+    logger(`Error in checkUserPermissions: ${error.message}`);
+    res.status(500).json({
+      status: 'failed',
+      body: {},
+      message: 'Internal server error'
+    });
+  }
+};
+
 module.exports = {
   getProfile,
   updateProfile,
@@ -484,5 +770,12 @@ module.exports = {
   createUser,
   updateUserById,
   deleteUserById,
-  getAllUsers
+  getAllUsers,
+  suspendUser,
+  deactivateUser,
+  reactivateUser,
+  getUsersByStatus,
+  getUserStatusHistory,
+  getSuspensionStats,
+  checkUserPermissions
 };

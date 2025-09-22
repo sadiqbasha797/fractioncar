@@ -11,6 +11,7 @@ const AMCSchema = new mongoose.Schema({
     duedate: { type: Date },
     paiddate: { type: Date },
     penality: { type: Number, default: 0 },
+    lastPenaltyCalculation: { type: Date },
     // Payment transaction details for each AMC payment
     paymentTransactionId: String,
     razorpayOrderId: String,

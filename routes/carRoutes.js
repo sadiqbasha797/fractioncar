@@ -22,11 +22,17 @@ router.post('/', upload.array('images', 10), carController.createCar);
 // Get all cars
 router.get('/', carController.getCars);
 
+// Get cars with stopBookings filter
+router.get('/filter', carController.getCarsWithStopBookingsFilter);
+
 // Get a car by ID
 router.get('/:id', carController.getCarById);
 
 // Update a car by ID
 router.put('/:id', upload.array('images', 10), carController.updateCar);
+
+// Update stopBookings field for a car
+router.put('/:id/stop-bookings', carController.updateStopBookings);
 
 // Delete a car by ID
 router.delete('/:id', carController.deleteCar);

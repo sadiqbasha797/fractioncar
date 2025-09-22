@@ -1,5 +1,7 @@
 const cron = require('node-cron');
 const AMCReminderService = require('./amcReminderService');
+const AMCPenaltyService = require('./amcPenaltyService');
+const UserStatusService = require('./userStatusService');
 const logger = require('./logger');
 
 class CronService {
@@ -12,6 +14,34 @@ class CronService {
         logger(`Daily AMC reminder job completed. ${result.remindersSent} reminders sent to ${result.totalChecked} AMC records.`);
       } catch (error) {
         logger(`Error in daily AMC reminder job: ${error.message}`);
+      }
+    }, {
+      scheduled: true,
+      timezone: "Asia/Kolkata"
+    });
+
+    // AMC Penalty Check - Run daily at 10:00 AM
+    cron.schedule('0 10 * * *', async () => {
+      try {
+        logger('Starting daily AMC penalty check job...');
+        const result = await AMCPenaltyService.checkAndApplyPenalties();
+        logger(`Daily AMC penalty check job completed. ${result.penaltiesApplied} penalties applied, total penalty amount: ₹${result.totalPenaltyAmount} for ${result.totalChecked} AMC records.`);
+      } catch (error) {
+        logger(`Error in daily AMC penalty check job: ${error.message}`);
+      }
+    }, {
+      scheduled: true,
+      timezone: "Asia/Kolkata"
+    });
+
+    // User Suspension Check - Run daily at 11:00 AM
+    cron.schedule('0 11 * * *', async () => {
+      try {
+        logger('Starting daily user suspension check job...');
+        const result = await UserStatusService.checkAndRemoveExpiredSuspensions();
+        logger(`Daily user suspension check job completed. ${result.reactivatedCount} users automatically reactivated from ${result.totalChecked} suspended users.`);
+      } catch (error) {
+        logger(`Error in daily user suspension check job: ${error.message}`);
       }
     }, {
       scheduled: true,

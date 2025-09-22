@@ -102,6 +102,11 @@ const carSchema = new mongoose.Schema({
     description: {
         type: String,
         required: false
+    },
+    stopBookings: {
+        type: Boolean,
+        default: false,
+        required: false
     }
 });
 
@@ -109,7 +114,9 @@ const carSchema = new mongoose.Schema({
 carSchema.index({ status: 1 });
 carSchema.index({ brandname: 1 });
 carSchema.index({ createdAt: 1 });
+carSchema.index({ stopBookings: 1 });
 carSchema.index({ status: 1, createdAt: 1 });
+carSchema.index({ status: 1, stopBookings: 1 });
 
 const Car = mongoose.model('Car', carSchema);
 

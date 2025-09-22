@@ -11,7 +11,7 @@ app.use(express.json());
 app.use(cors({
   origin: [
     'http://localhost:4200', // Angular default port for development
-    'http://localhost:59222', // Additional development port
+    'http://localhost:56095', // Additional development port
     'https://fraction.projexino.com', // Production frontend URL
     'https://fractionadmin.projexino.com', // Production frontend URL
     'https://fraction2.projexino.com', // Production frontend URL
@@ -107,6 +107,10 @@ app.use('/api/dashboard', dashboardRoutes);
 // Admin management routes
 const adminRoutes = require('./routes/adminRoutes');
 app.use('/api/admins', adminRoutes);
+
+// Shared Member routes
+const sharedMemberRoutes = require('./routes/sharedMemberRoutes');
+app.use('/api/shared-members', sharedMemberRoutes);
 
 const PORT = process.env.PORT || 2000;
 app.listen(PORT, () => {

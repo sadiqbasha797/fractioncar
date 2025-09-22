@@ -14,4 +14,9 @@ router.delete('/:id', amcController.deleteAMC);
 // Special route for updating payment status
 router.put('/:id/payment-status', amcController.updateAMCPaymentStatus);
 
+// Penalty management routes (admin and superadmin only)
+router.get('/overdue/list', amcController.getOverdueAMCs);
+router.post('/penalties/apply', amcController.applyPenalties);
+router.post('/:amcId/penalty/apply', amcController.applyPenaltyForAMC);
+
 module.exports = router;

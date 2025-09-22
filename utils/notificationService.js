@@ -198,6 +198,8 @@ class NotificationService {
       'ticket_created': 'medium',
       'amc_payment_done': 'medium',
       'amc_reminder': 'high',
+      'amc_penalty': 'high',
+      'amc_penalty_applied': 'high',
       'booking_done': 'medium',
       'kyc_approved': 'high',
       'kyc_rejected': 'high',
@@ -208,7 +210,12 @@ class NotificationService {
       'user_paid_amc': 'medium',
       'user_made_booking': 'medium',
       'user_kyc_approved': 'high',
-      'user_kyc_rejected': 'high'
+      'user_kyc_rejected': 'high',
+      'user_suspended': 'high',
+      'user_deactivated': 'high',
+      'user_reactivated': 'high',
+      'user_suspension_expired': 'high',
+      'user_status_changed': 'high'
     };
 
     return priorityMap[type] || 'medium';
@@ -487,6 +494,146 @@ class NotificationService {
         userEmail: userDetails.email,
         userId: userDetails._id,
         rejectionComments
+      },
+      userDetails._id,
+      'User'
+    );
+  }
+
+  // Create AMC penalty notification for user
+  static async createAMCPenaltyNotification(userId, amcDetails, carDetails, yearData, penaltyAmount, daysOverdue) {
+    return await this.createUserNotification(
+      userId,
+      'amc_penalty',
+      '⚠️ AMC Penalty Applied',
+      `A penalty of ₹${penaltyAmount} has been applied to your AMC payment for ${carDetails.name} (Year ${yearData.year}) as it is ${daysOverdue} days overdue. Please make the payment immediately to avoid further penalties.`,
+      { 
+        amcId: amcDetails._id,
+        carName: carDetails.name,
+        year: yearData.year,
+        originalAmount: yearData.amount,
+        penaltyAmount,
+        daysOverdue,
+        totalAmount: yearData.amount + penaltyAmount
+      },
+      amcDetails._id,
+      'AMC'
+    );
+  }
+
+  // Create admin notification for AMC penalty applied
+  static async createAdminAMCPenaltyNotification(userDetails, amcDetails, carDetails, yearData, penaltyAmount, daysOverdue) {
+    return await this.createAdminNotification(
+      'amc_penalty_applied',
+      '⚠️ AMC Penalty Applied',
+      `A penalty of ₹${penaltyAmount} has been applied to ${userDetails.name}'s AMC payment for ${carDetails.name} (Year ${yearData.year}) as it is ${daysOverdue} days overdue.`,
+      { 
+        userName: userDetails.name,
+        userEmail: userDetails.email,
+        amcId: amcDetails._id,
+        carName: carDetails.name,
+        year: yearData.year,
+        originalAmount: yearData.amount,
+        penaltyAmount,
+        daysOverdue,
+        totalAmount: yearData.amount + penaltyAmount
+      },
+      amcDetails._id,
+      'AMC'
+    );
+  }
+
+  // Create user suspension notification
+  static async createUserSuspensionNotification(userId, userName, reason, suspensionEndDate) {
+    return await this.createUserNotification(
+      userId,
+      'user_suspended',
+      '⚠️ Account Suspended',
+      `Your account has been suspended for 7 days. Reason: ${reason}. Your suspension will end on ${suspensionEndDate.toLocaleDateString('en-IN')}.`,
+      { 
+        userName,
+        reason,
+        suspensionEndDate: suspensionEndDate.toISOString(),
+        suspensionEndDateFormatted: suspensionEndDate.toLocaleDateString('en-IN')
+      },
+      userId,
+      'User'
+    );
+  }
+
+  // Create user deactivation notification
+  static async createUserDeactivationNotification(userId, userName, reason) {
+    return await this.createUserNotification(
+      userId,
+      'user_deactivated',
+      '❌ Account Deactivated',
+      `Your account has been deactivated. Reason: ${reason}. Please contact support if you believe this is an error.`,
+      { 
+        userName,
+        reason
+      },
+      userId,
+      'User'
+    );
+  }
+
+  // Create user reactivation notification
+  static async createUserReactivationNotification(userId, userName, reason) {
+    return await this.createUserNotification(
+      userId,
+      'user_reactivated',
+      '✅ Account Reactivated',
+      `Your account has been reactivated. Reason: ${reason}. You can now access all features again.`,
+      { 
+        userName,
+        reason
+      },
+      userId,
+      'User'
+    );
+  }
+
+  // Create user suspension expired notification
+  static async createUserSuspensionExpiredNotification(userId, userName) {
+    return await this.createUserNotification(
+      userId,
+      'user_suspension_expired',
+      '✅ Suspension Expired',
+      `Your account suspension has expired and your account has been automatically reactivated. You can now access all features again.`,
+      { 
+        userName
+      },
+      userId,
+      'User'
+    );
+  }
+
+  // Create admin notification for user status change
+  static async createAdminUserStatusChangeNotification(userDetails, oldStatus, newStatus, reason, changedBy) {
+    const statusMessages = {
+      'suspended': 'suspended',
+      'deactivated': 'deactivated',
+      'active': 'reactivated'
+    };
+
+    const statusEmojis = {
+      'suspended': '⚠️',
+      'deactivated': '❌',
+      'active': '✅'
+    };
+
+    return await this.createAdminNotification(
+      'user_status_changed',
+      `${statusEmojis[newStatus]} User Account ${statusMessages[newStatus]}`,
+      `User ${userDetails.name} (${userDetails.email}) has been ${statusMessages[newStatus]} by ${changedBy.role} ${changedBy.name}. Reason: ${reason}`,
+      { 
+        userName: userDetails.name,
+        userEmail: userDetails.email,
+        userId: userDetails._id,
+        oldStatus,
+        newStatus,
+        reason,
+        changedBy
       },
       userDetails._id,
       'User'

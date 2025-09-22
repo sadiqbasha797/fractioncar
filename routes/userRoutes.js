@@ -31,4 +31,13 @@ router.put('/:userId', userController.updateUserById);
 // Delete user by ID (admin/superadmin only)
 router.delete('/:userId', userController.deleteUserById);
 
+// User status management routes (admin/superadmin only)
+router.post('/:userId/suspend', userController.suspendUser);
+router.post('/:userId/deactivate', userController.deactivateUser);
+router.post('/:userId/reactivate', userController.reactivateUser);
+router.get('/status/:status', userController.getUsersByStatus);
+router.get('/:userId/status-history', userController.getUserStatusHistory);
+router.get('/stats/suspensions', userController.getSuspensionStats);
+router.get('/:userId/permissions', userController.checkUserPermissions);
+
 module.exports = router;

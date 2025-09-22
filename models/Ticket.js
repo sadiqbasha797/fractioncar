@@ -15,6 +15,10 @@ const TicketSchema = new mongoose.Schema({
     resold: { type: Boolean, default: false },
     createdby: { type: mongoose.Schema.Types.ObjectId, required: true, refPath: 'createdByModel' },
     createdByModel: { type: String, required: true, enum: ['Admin', 'SuperAdmin'] },
+    sharedMembers: [{ 
+        type: mongoose.Schema.Types.ObjectId, 
+        ref: 'SharedMember' 
+    }],
     createdate: { type: Date, default: Date.now }
 });
 

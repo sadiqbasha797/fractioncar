@@ -409,12 +409,126 @@ const updateBookNowTokenCount = async (req, res) => {
   }
 };
 
+// Update stopBookings field for a car (Admin and SuperAdmin only)
+const updateStopBookings = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { stopBookings } = req.body;
+
+    // Validate stopBookings field
+    if (typeof stopBookings !== 'boolean') {
+      return res.status(400).json({
+        status: 'failed',
+        body: {},
+        message: 'stopBookings must be a boolean value (true or false)'
+      });
+    }
+
+    // Find the car
+    const car = await Car.findById(id);
+    if (!car) {
+      return res.status(404).json({
+        status: 'failed',
+        body: {},
+        message: 'Car not found'
+      });
+    }
+
+    // Update the stopBookings field
+    car.stopBookings = stopBookings;
+    await car.save();
+
+    logger(`Stop bookings updated for car ${id}: ${stopBookings}`);
+
+    res.json({
+      status: 'success',
+      body: { 
+        car: {
+          _id: car._id,
+          carname: car.carname,
+          brandname: car.brandname,
+          stopBookings: car.stopBookings,
+          status: car.status
+        }
+      },
+      message: `Bookings ${stopBookings ? 'stopped' : 'enabled'} for car successfully`
+    });
+  } catch (error) {
+    logger(`Error updating stopBookings: ${error.message}`);
+    res.status(500).json({
+      status: 'failed',
+      body: {},
+      message: 'Internal server error'
+    });
+  }
+};
+
+// Get cars with stopBookings filter (Admin and SuperAdmin only)
+const getCarsWithStopBookingsFilter = async (req, res) => {
+  try {
+    const { page = 1, limit = 10, stopBookings, status, search } = req.query;
+    const skip = (page - 1) * limit;
+
+    let query = {};
+    
+    // Filter by stopBookings status
+    if (stopBookings !== undefined) {
+      query.stopBookings = stopBookings === 'true';
+    }
+    
+    // Filter by car status
+    if (status) {
+      query.status = status;
+    }
+    
+    // Search functionality
+    if (search) {
+      query.$or = [
+        { carname: { $regex: search, $options: 'i' } },
+        { brandname: { $regex: search, $options: 'i' } },
+        { color: { $regex: search, $options: 'i' } }
+      ];
+    }
+
+    const cars = await Car.find(query)
+      .populate('createdBy', 'name email')
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(parseInt(limit));
+
+    const total = await Car.countDocuments(query);
+
+    res.json({
+      status: 'success',
+      body: { 
+        cars,
+        pagination: {
+          currentPage: parseInt(page),
+          totalPages: Math.ceil(total / limit),
+          totalItems: total,
+          itemsPerPage: parseInt(limit)
+        }
+      },
+      message: 'Cars retrieved successfully'
+    });
+  } catch (error) {
+    logger(`Error in getCarsWithStopBookingsFilter: ${error.message}`);
+    res.status(500).json({
+      status: 'failed',
+      body: {},
+      message: 'Internal server error'
+    });
+  }
+};
+
 module.exports = {
   createCar,
   getCars,
   getCarById,
   updateCar,
   updateBookNowTokenCount,
+  updateStopBookings,
+  getCarsWithStopBookingsFilter,
   deleteCar,
   getPublicCars,
   getPublicCarById

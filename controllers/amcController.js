@@ -7,6 +7,7 @@ const {
   sendSuperAdminAMCPaymentNotification 
 } = require('../utils/emailService');
 const NotificationService = require('../utils/notificationService');
+const AMCPenaltyService = require('../utils/amcPenaltyService');
 
 // Create a new AMC
 const createAMC = async (req, res) => {
@@ -280,11 +281,109 @@ const updateAMCPaymentStatus = async (req, res) => {
   }
 };
 
+// Get overdue AMC records with penalty information
+const getOverdueAMCs = async (req, res) => {
+  try {
+    // Only admin and superadmin can access this
+    if (req.user.role === 'user') {
+      return res.status(403).json({
+        status: 'failed',
+        body: {},
+        message: 'Not authorized to access overdue AMC records'
+      });
+    }
+
+    const overdueRecords = await AMCPenaltyService.getOverdueAMCRecords();
+    
+    res.json({
+      status: 'success',
+      body: { overdueRecords },
+      message: 'Overdue AMC records retrieved successfully'
+    });
+  } catch (error) {
+    logger(`Error in getOverdueAMCs: ${error.message}`);
+    res.status(500).json({
+      status: 'failed',
+      body: {},
+      message: 'Internal server error'
+    });
+  }
+};
+
+// Manually apply penalties for overdue AMC payments
+const applyPenalties = async (req, res) => {
+  try {
+    // Only admin and superadmin can trigger this
+    if (req.user.role === 'user') {
+      return res.status(403).json({
+        status: 'failed',
+        body: {},
+        message: 'Not authorized to apply penalties'
+      });
+    }
+
+    const result = await AMCPenaltyService.checkAndApplyPenalties();
+    
+    res.json({
+      status: 'success',
+      body: { 
+        penaltiesApplied: result.penaltiesApplied,
+        totalPenaltyAmount: result.totalPenaltyAmount,
+        totalChecked: result.totalChecked
+      },
+      message: `Penalties applied successfully. ${result.penaltiesApplied} penalties applied with total amount ₹${result.totalPenaltyAmount}`
+    });
+  } catch (error) {
+    logger(`Error in applyPenalties: ${error.message}`);
+    res.status(500).json({
+      status: 'failed',
+      body: {},
+      message: 'Internal server error'
+    });
+  }
+};
+
+// Apply penalty for a specific AMC
+const applyPenaltyForAMC = async (req, res) => {
+  try {
+    // Only admin and superadmin can trigger this
+    if (req.user.role === 'user') {
+      return res.status(403).json({
+        status: 'failed',
+        body: {},
+        message: 'Not authorized to apply penalties'
+      });
+    }
+
+    const { amcId } = req.params;
+    const result = await AMCPenaltyService.applyPenaltyForAMC(amcId);
+    
+    res.json({
+      status: 'success',
+      body: { 
+        penaltiesApplied: result.penaltiesApplied,
+        totalPenaltyAmount: result.totalPenaltyAmount
+      },
+      message: `Penalties applied for AMC ${amcId}. ${result.penaltiesApplied} penalties applied with total amount ₹${result.totalPenaltyAmount}`
+    });
+  } catch (error) {
+    logger(`Error in applyPenaltyForAMC: ${error.message}`);
+    res.status(500).json({
+      status: 'failed',
+      body: {},
+      message: 'Internal server error'
+    });
+  }
+};
+
 module.exports = {
   createAMC,
   getAMCs,
   getAMCById,
   updateAMC,
   deleteAMC,
-  updateAMCPaymentStatus
+  updateAMCPaymentStatus,
+  getOverdueAMCs,
+  applyPenalties,
+  applyPenaltyForAMC
 };
