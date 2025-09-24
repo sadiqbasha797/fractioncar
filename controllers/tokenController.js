@@ -7,6 +7,7 @@ const {
   sendSuperAdminTokenPurchaseNotification 
 } = require('../utils/emailService');
 const NotificationService = require('../utils/notificationService');
+const BookingAvailabilityService = require('../utils/bookingAvailabilityService');
 
 // Create a new token (Admin/SuperAdmin can create for any user, User can create for themselves)
 const createToken = async (req, res) => {
@@ -91,6 +92,14 @@ const createToken = async (req, res) => {
     await Car.findByIdAndUpdate(carid, {
       $inc: { tokensavailble: -1 }
     });
+
+    // Check if bookings should be stopped for this car after token decrement
+    try {
+      await BookingAvailabilityService.stopBookingsIfNeeded(carid);
+    } catch (error) {
+      logger(`Error checking booking availability after token creation: ${error.message}`);
+      // Don't fail the request if this check fails
+    }
 
     // Send emails and create notifications after successful token creation
     try {
@@ -250,6 +259,14 @@ const updateToken = async (req, res) => {
         await Car.findByIdAndUpdate(carid, {
           $inc: { tokensavailble: 1 }
         });
+
+        // Check if bookings should be enabled for this car after token increment
+        try {
+          await BookingAvailabilityService.stopBookingsIfNeeded(carid);
+        } catch (error) {
+          logger(`Error checking booking availability after token drop: ${error.message}`);
+          // Don't fail the request if this check fails
+        }
       }
     }
     

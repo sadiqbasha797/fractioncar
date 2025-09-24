@@ -3,6 +3,7 @@ const logger = require('../utils/logger');
 const cloudinary = require('../config/cloudinary');
 const fs = require('fs');
 const { deleteImagesFromCloudinary } = require('../utils/imageUtils');
+const BookingAvailabilityService = require('../utils/bookingAvailabilityService');
 
 // Create a new car
 const createCar = async (req, res) => {
@@ -43,6 +44,25 @@ const createCar = async (req, res) => {
           // Continue with other images even if one fails
         }
       }
+    }
+
+    // Validate maximum limits for car creation
+    const validationErrors = [];
+    
+    if (bookNowTokenAvailable !== undefined && (bookNowTokenAvailable > 12 || bookNowTokenAvailable < 0)) {
+      validationErrors.push('Book now tokens must be between 0 and 12');
+    }
+    
+    if (totaltickets !== undefined && (totaltickets > 12 || totaltickets < 1)) {
+      validationErrors.push('Total shares must be between 1 and 12');
+    }
+
+    if (validationErrors.length > 0) {
+      return res.status(400).json({
+        status: 'failed',
+        body: {},
+        message: validationErrors.join('. ')
+      });
     }
 
     const car = new Car({
@@ -174,8 +194,50 @@ const updateCar = async (req, res) => {
       bookNowTokenPrice,
       location,
       pincode,
-      description
+      description,
+      stopBookings
     } = req.body;
+
+    // Convert stopBookings string to boolean if provided
+    const stopBookingsValue = stopBookings !== undefined ? 
+      (stopBookings === 'true' || stopBookings === true) : undefined;
+
+    // Check if both tokensavailble and bookNowTokenAvailable are 0
+    // If so, automatically set stopBookings to true
+    const shouldAutoStopBookings = (tokensavailble === 0 || tokensavailble === '0') && 
+                                  (bookNowTokenAvailable === 0 || bookNowTokenAvailable === '0');
+    
+    // If trying to enable bookings but no availability, prevent it
+    if (stopBookingsValue === false && shouldAutoStopBookings) {
+      return res.status(400).json({
+        status: 'failed',
+        body: {},
+        message: 'Cannot enable bookings: Both waitlist and book now tokens are filled. Add vacancy to open bookings.'
+      });
+    }
+
+    // Validate maximum limits
+    const validationErrors = [];
+    
+    if (tokensavailble !== undefined && (tokensavailble > 20 || tokensavailble < 0)) {
+      validationErrors.push('Waitlist tokens must be between 0 and 20');
+    }
+    
+    if (bookNowTokenAvailable !== undefined && (bookNowTokenAvailable > 12 || bookNowTokenAvailable < 0)) {
+      validationErrors.push('Book now tokens must be between 0 and 12');
+    }
+    
+    if (totaltickets !== undefined && (totaltickets > 12 || totaltickets < 1)) {
+      validationErrors.push('Total shares must be between 1 and 12');
+    }
+
+    if (validationErrors.length > 0) {
+      return res.status(400).json({
+        status: 'failed',
+        body: {},
+        message: validationErrors.join('. ')
+      });
+    }
 
     const car = await Car.findById(req.params.id);
     if (!car) {
@@ -233,6 +295,14 @@ const updateCar = async (req, res) => {
 
     // Ensure tokensavailble never exceeds 20
     const updatedTokensAvailable = tokensavailble !== undefined ? Math.min(tokensavailble, 20) : undefined;
+    
+    // Determine final stopBookings value
+    let finalStopBookingsValue = stopBookingsValue;
+    
+    // If both tokens are 0, automatically stop bookings
+    if (shouldAutoStopBookings) {
+      finalStopBookingsValue = true;
+    }
 
     const updatedCar = await Car.findByIdAndUpdate(
       req.params.id,
@@ -257,7 +327,8 @@ const updateCar = async (req, res) => {
         images,
         location,
         pincode,
-        description
+        description,
+        stopBookings: finalStopBookingsValue
       },
       { new: true }
     );
@@ -273,10 +344,23 @@ const updateCar = async (req, res) => {
       }
     }
 
+    let message = 'Car updated successfully';
+    if (shouldAutoStopBookings && stopBookingsValue !== true) {
+      message = 'Car updated successfully. Bookings automatically stopped as both waitlist and book now tokens are filled.';
+    }
+
+    // Check if bookings should be stopped for this car (in case tokens were updated)
+    try {
+      await BookingAvailabilityService.stopBookingsIfNeeded(req.params.id);
+    } catch (error) {
+      logger(`Error checking booking availability after update: ${error.message}`);
+      // Don't fail the request if this check fails
+    }
+
     res.json({
       status: 'success',
       body: { car: updatedCar },
-      message: 'Car updated successfully'
+      message: message
     });
   } catch (error) {
     logger(`Error in updateCar: ${error.message}`);
@@ -369,10 +453,10 @@ const updateBookNowTokenCount = async (req, res) => {
     const { id } = req.params;
     const { bookNowTokenAvailable } = req.body;
 
-    if (bookNowTokenAvailable === undefined || bookNowTokenAvailable < 0) {
+    if (bookNowTokenAvailable === undefined || bookNowTokenAvailable < 0 || bookNowTokenAvailable > 12) {
       return res.status(400).json({
         status: 'error',
-        message: 'bookNowTokenAvailable is required and must be >= 0'
+        message: 'bookNowTokenAvailable is required and must be between 0 and 12'
       });
     }
 
@@ -387,6 +471,14 @@ const updateBookNowTokenCount = async (req, res) => {
         status: 'error',
         message: 'Car not found'
       });
+    }
+
+    // Check if bookings should be stopped for this car after token update
+    try {
+      await BookingAvailabilityService.stopBookingsIfNeeded(id);
+    } catch (error) {
+      logger(`Error checking booking availability after token update: ${error.message}`);
+      // Don't fail the request if this check fails
     }
 
     res.status(200).json({
@@ -409,59 +501,6 @@ const updateBookNowTokenCount = async (req, res) => {
   }
 };
 
-// Update stopBookings field for a car (Admin and SuperAdmin only)
-const updateStopBookings = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { stopBookings } = req.body;
-
-    // Validate stopBookings field
-    if (typeof stopBookings !== 'boolean') {
-      return res.status(400).json({
-        status: 'failed',
-        body: {},
-        message: 'stopBookings must be a boolean value (true or false)'
-      });
-    }
-
-    // Find the car
-    const car = await Car.findById(id);
-    if (!car) {
-      return res.status(404).json({
-        status: 'failed',
-        body: {},
-        message: 'Car not found'
-      });
-    }
-
-    // Update the stopBookings field
-    car.stopBookings = stopBookings;
-    await car.save();
-
-    logger(`Stop bookings updated for car ${id}: ${stopBookings}`);
-
-    res.json({
-      status: 'success',
-      body: { 
-        car: {
-          _id: car._id,
-          carname: car.carname,
-          brandname: car.brandname,
-          stopBookings: car.stopBookings,
-          status: car.status
-        }
-      },
-      message: `Bookings ${stopBookings ? 'stopped' : 'enabled'} for car successfully`
-    });
-  } catch (error) {
-    logger(`Error updating stopBookings: ${error.message}`);
-    res.status(500).json({
-      status: 'failed',
-      body: {},
-      message: 'Internal server error'
-    });
-  }
-};
 
 // Get cars with stopBookings filter (Admin and SuperAdmin only)
 const getCarsWithStopBookingsFilter = async (req, res) => {
@@ -527,7 +566,6 @@ module.exports = {
   getCarById,
   updateCar,
   updateBookNowTokenCount,
-  updateStopBookings,
   getCarsWithStopBookingsFilter,
   deleteCar,
   getPublicCars,

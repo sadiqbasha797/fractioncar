@@ -2,6 +2,7 @@ const cron = require('node-cron');
 const AMCReminderService = require('./amcReminderService');
 const AMCPenaltyService = require('./amcPenaltyService');
 const UserStatusService = require('./userStatusService');
+const BookingAvailabilityService = require('./bookingAvailabilityService');
 const logger = require('./logger');
 
 class CronService {
@@ -56,6 +57,20 @@ class CronService {
         logger('Daily notification cleanup job completed.');
       } catch (error) {
         logger(`Error in daily notification cleanup job: ${error.message}`);
+      }
+    }, {
+      scheduled: true,
+      timezone: "Asia/Kolkata"
+    });
+
+    // Booking Availability Check - Run every 30 minutes
+    cron.schedule('*/30 * * * *', async () => {
+      try {
+        logger('Starting booking availability check job...');
+        const result = await BookingAvailabilityService.checkAndStopBookings();
+        logger(`Booking availability check completed. ${result.bookingsStopped} bookings stopped for ${result.totalChecked} cars checked.`);
+      } catch (error) {
+        logger(`Error in booking availability check job: ${error.message}`);
       }
     }, {
       scheduled: true,
