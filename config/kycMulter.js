@@ -24,7 +24,7 @@ const storage = multer.diskStorage({
 const uploadKycDocument = multer({ 
   storage: storage,
   limits: {
-    fileSize: 10 * 1024 * 1024 // Limit file size to 10MB for PDF documents
+    fileSize: 10 * 1024 * 1024 // Limit file size to 10MB for KYC documents
   },
   fileFilter: function (req, file, cb) {
     // Accept only PDF files for KYC documents

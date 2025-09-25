@@ -3,14 +3,14 @@ const router = express.Router();
 const bookNowTokenController = require('../controllers/bookNowTokenController');
 const authMiddleware = require('../middleware/authMiddleware');
 
-// Create book now token (User, Admin)
-router.post('/', authMiddleware(['user', 'admin', 'user']), bookNowTokenController.createBookNowToken);
+// Create book now token (User, Admin, SuperAdmin)
+router.post('/', authMiddleware(['user', 'admin', 'superadmin']), bookNowTokenController.createBookNowToken);
 
-// Get book now tokens (User: own tokens, Admin: all tokens)
-router.get('/', authMiddleware(['user', 'admin']), bookNowTokenController.getBookNowTokens);
+// Get book now tokens (User: own tokens, Admin: all tokens, SuperAdmin: all tokens)
+router.get('/', authMiddleware(['user', 'admin', 'superadmin']), bookNowTokenController.getBookNowTokens);
 
-// Get book now token by ID (User: own tokens, Admin: all tokens)
-router.get('/:id', authMiddleware(['user', 'admin']), bookNowTokenController.getBookNowTokenById);
+// Get book now token by ID (User: own tokens, Admin: all tokens, SuperAdmin: all tokens)
+router.get('/:id', authMiddleware(['user', 'admin', 'superadmin']), bookNowTokenController.getBookNowTokenById);
 
 // Update book now token (Admin only)
 router.put('/:id', authMiddleware(['admin', 'superadmin']), bookNowTokenController.updateBookNowToken);

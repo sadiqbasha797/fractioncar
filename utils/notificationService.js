@@ -238,10 +238,10 @@ class NotificationService {
       userId,
       'booknow_token_created',
       '🚀 Book Now Token Created!',
-      `Your Book Now Token for ${carDetails.name} has been created successfully. You can now book this car immediately.`,
+      `Your Book Now Token for ${carDetails.carname} has been created successfully. You can now book this car immediately.`,
       { 
         tokenId: tokenDetails._id,
-        carName: carDetails.name,
+        carName: carDetails.carname,
         amountPaid: tokenDetails.amountpaid
       },
       tokenDetails._id,
@@ -255,10 +255,10 @@ class NotificationService {
       userId,
       'token_created',
       '🎫 Token Purchased - You\'re on the Waitlist!',
-      `You've purchased a token for ${carDetails.name}. You're now on the waitlist and will be notified when it's your turn to book.`,
+      `You've purchased a token for ${carDetails.carname}. You're now on the waitlist and will be notified when it's your turn to book.`,
       { 
         tokenId: tokenDetails._id,
-        carName: carDetails.name,
+        carName: carDetails.carname,
         amountPaid: tokenDetails.amountpaid
       },
       tokenDetails._id,
@@ -272,10 +272,10 @@ class NotificationService {
       userId,
       'ticket_created',
       '🎫 Share Ticket Created!',
-      `Your share ticket for ${carDetails.name} has been created successfully. You now own a share in this car.`,
+      `Your share ticket for ${carDetails.carname} has been created successfully. You now own a share in this car.`,
       { 
         ticketId: ticketDetails._id,
-        carName: carDetails.name,
+        carName: carDetails.carname,
         ticketPrice: ticketDetails.ticketprice
       },
       ticketDetails._id,
@@ -289,10 +289,10 @@ class NotificationService {
       userId,
       'amc_payment_done',
       '🔧 AMC Payment Confirmed!',
-      `Your Annual Maintenance Charge payment for ${carDetails.name} has been confirmed. Thank you for your payment.`,
+      `Your Annual Maintenance Charge payment for ${carDetails.carname} has been confirmed. Thank you for your payment.`,
       { 
         amcId: amcDetails._id,
-        carName: carDetails.name,
+        carName: carDetails.carname,
         totalAmount: amcDetails.amcamount.reduce((sum, year) => sum + year.amount, 0)
       },
       amcDetails._id,
@@ -306,10 +306,10 @@ class NotificationService {
       userId,
       'amc_reminder',
       '⚠️ AMC Payment Reminder',
-      `Your Annual Maintenance Charge for ${carDetails.name} is due in ${daysLeft} days. Please make the payment to avoid penalties.`,
+      `Your Annual Maintenance Charge for ${carDetails.carname} is due in ${daysLeft} days. Please make the payment to avoid penalties.`,
       { 
         amcId: amcDetails._id,
-        carName: carDetails.name,
+        carName: carDetails.carname,
         daysLeft,
         amount: amcDetails.amcamount.find(year => !year.paid)?.amount || 0
       },
@@ -324,10 +324,10 @@ class NotificationService {
       userId,
       'booking_done',
       '🚗 Booking Confirmed!',
-      `Your booking for ${carDetails.name} has been confirmed. Enjoy your ride!`,
+      `Your booking for ${carDetails.carname} has been confirmed. Enjoy your ride!`,
       { 
         bookingId: bookingDetails._id,
-        carName: carDetails.name,
+        carName: carDetails.carname,
         bookingFrom: bookingDetails.bookingFrom,
         bookingTo: bookingDetails.bookingTo
       },
@@ -363,12 +363,12 @@ class NotificationService {
     return await this.createAdminNotification(
       'user_joined_waitlist',
       '👤 User Joined Waitlist',
-      `${userDetails.name} has purchased a token for ${carDetails.name} and joined the waitlist.`,
+      `${userDetails.name} has purchased a token for ${carDetails.carname} and joined the waitlist.`,
       { 
         userName: userDetails.name,
         userEmail: userDetails.email,
         tokenId: tokenDetails._id,
-        carName: carDetails.name,
+        carName: carDetails.carname,
         amountPaid: tokenDetails.amountpaid
       },
       tokenDetails._id,
@@ -381,12 +381,12 @@ class NotificationService {
     return await this.createAdminNotification(
       'user_purchased_token',
       '🎫 User Purchased Token',
-      `${userDetails.name} has purchased a token for ${carDetails.name}.`,
+      `${userDetails.name} has purchased a token for ${carDetails.carname}.`,
       { 
         userName: userDetails.name,
         userEmail: userDetails.email,
         tokenId: tokenDetails._id,
-        carName: carDetails.name,
+        carName: carDetails.carname,
         amountPaid: tokenDetails.amountpaid
       },
       tokenDetails._id,
@@ -399,12 +399,12 @@ class NotificationService {
     return await this.createAdminNotification(
       'user_purchased_booknow_token',
       '🚀 User Purchased Book Now Token',
-      `${userDetails.name} has purchased a book now token for ${carDetails.name}.`,
+      `${userDetails.name} has purchased a book now token for ${carDetails.carname}.`,
       { 
         userName: userDetails.name,
         userEmail: userDetails.email,
         tokenId: tokenDetails._id,
-        carName: carDetails.name,
+        carName: carDetails.carname,
         amountPaid: tokenDetails.amountpaid
       },
       tokenDetails._id,
@@ -417,12 +417,12 @@ class NotificationService {
     return await this.createAdminNotification(
       'user_created_ticket',
       '🎫 User Created Share Ticket',
-      `${userDetails.name} has created a share ticket for ${carDetails.name}.`,
+      `${userDetails.name} has created a share ticket for ${carDetails.carname}.`,
       { 
         userName: userDetails.name,
         userEmail: userDetails.email,
         ticketId: ticketDetails._id,
-        carName: carDetails.name,
+        carName: carDetails.carname,
         ticketPrice: ticketDetails.ticketprice
       },
       ticketDetails._id,
@@ -435,12 +435,12 @@ class NotificationService {
     return await this.createAdminNotification(
       'user_paid_amc',
       '🔧 User Paid AMC',
-      `${userDetails.name} has made an AMC payment for ${carDetails.name}.`,
+      `${userDetails.name} has made an AMC payment for ${carDetails.carname}.`,
       { 
         userName: userDetails.name,
         userEmail: userDetails.email,
         amcId: amcDetails._id,
-        carName: carDetails.name,
+        carName: carDetails.carname,
         totalAmount: amcDetails.amcamount.reduce((sum, year) => sum + year.amount, 0)
       },
       amcDetails._id,
@@ -453,12 +453,12 @@ class NotificationService {
     return await this.createAdminNotification(
       'user_made_booking',
       '🚗 User Made Booking',
-      `${userDetails.name} has made a booking for ${carDetails.name}.`,
+      `${userDetails.name} has made a booking for ${carDetails.carname}.`,
       { 
         userName: userDetails.name,
         userEmail: userDetails.email,
         bookingId: bookingDetails._id,
-        carName: carDetails.name,
+        carName: carDetails.carname,
         bookingFrom: bookingDetails.bookingFrom,
         bookingTo: bookingDetails.bookingTo
       },
@@ -506,10 +506,10 @@ class NotificationService {
       userId,
       'amc_penalty',
       '⚠️ AMC Penalty Applied',
-      `A penalty of ₹${penaltyAmount} has been applied to your AMC payment for ${carDetails.name} (Year ${yearData.year}) as it is ${daysOverdue} days overdue. Please make the payment immediately to avoid further penalties.`,
+      `A penalty of ₹${penaltyAmount} has been applied to your AMC payment for ${carDetails.carname} (Year ${yearData.year}) as it is ${daysOverdue} days overdue. Please make the payment immediately to avoid further penalties.`,
       { 
         amcId: amcDetails._id,
-        carName: carDetails.name,
+        carName: carDetails.carname,
         year: yearData.year,
         originalAmount: yearData.amount,
         penaltyAmount,
@@ -526,12 +526,12 @@ class NotificationService {
     return await this.createAdminNotification(
       'amc_penalty_applied',
       '⚠️ AMC Penalty Applied',
-      `A penalty of ₹${penaltyAmount} has been applied to ${userDetails.name}'s AMC payment for ${carDetails.name} (Year ${yearData.year}) as it is ${daysOverdue} days overdue.`,
+      `A penalty of ₹${penaltyAmount} has been applied to ${userDetails.name}'s AMC payment for ${carDetails.carname} (Year ${yearData.year}) as it is ${daysOverdue} days overdue.`,
       { 
         userName: userDetails.name,
         userEmail: userDetails.email,
         amcId: amcDetails._id,
-        carName: carDetails.name,
+        carName: carDetails.carname,
         year: yearData.year,
         originalAmount: yearData.amount,
         penaltyAmount,

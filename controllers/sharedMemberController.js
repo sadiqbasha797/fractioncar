@@ -16,6 +16,28 @@ const SuperAdmin = require('../models/SuperAdmin');
 const createSharedMember = async (req, res) => {
   try {
     const { name, email, mobileNumber, aadharNumber, panNumber, kycDocuments, ticketid, userid } = req.body;
+    
+    // Debug logging
+    logger(`Creating shared member with data: ${JSON.stringify(req.body)}`);
+    logger(`User info: ${JSON.stringify(req.user)}`);
+
+    // Validate required fields
+    if (!name || !email || !mobileNumber || !aadharNumber || !panNumber) {
+      return res.status(400).json({
+        status: 'failed',
+        body: {},
+        message: 'Missing required fields: name, email, mobileNumber, aadharNumber, and panNumber are required'
+      });
+    }
+
+    // Validate user authentication
+    if (!req.user || !req.user.id || !req.user.role) {
+      return res.status(401).json({
+        status: 'failed',
+        body: {},
+        message: 'Authentication required'
+      });
+    }
 
     // Check if shared member already exists with same email, mobile, aadhar, or PAN
     const existingMember = await SharedMember.findOne({
@@ -42,10 +64,12 @@ const createSharedMember = async (req, res) => {
       aadharNumber,
       panNumber: panNumber.toUpperCase(),
       kycDocuments: kycDocuments || [],
-      ticketid: ticketid || null,
-      userid: userid || null,
+      ticketid: (ticketid && ticketid !== '') ? ticketid : null,
+      userid: (userid && userid !== '') ? userid : null,
       createdBy: req.user.id,
-      createdByModel: req.user.role
+      createdByModel: req.user.role === 'superadmin' ? 'SuperAdmin' : 
+                     req.user.role === 'admin' ? 'Admin' : 
+                     req.user.role === 'user' ? 'User' : 'User'
     });
 
     await sharedMember.save();
@@ -115,6 +139,26 @@ const createSharedMember = async (req, res) => {
     });
   } catch (error) {
     logger(`Error in createSharedMember: ${error.message}`);
+    
+    // Handle validation errors
+    if (error.name === 'ValidationError') {
+      const validationErrors = Object.values(error.errors).map(err => err.message);
+      return res.status(400).json({
+        status: 'failed',
+        body: {},
+        message: `Validation error: ${validationErrors.join(', ')}`
+      });
+    }
+    
+    // Handle duplicate key errors
+    if (error.code === 11000) {
+      return res.status(400).json({
+        status: 'failed',
+        body: {},
+        message: 'Shared member already exists with this email, mobile, Aadhar, or PAN number'
+      });
+    }
+    
     res.status(500).json({
       status: 'failed',
       body: {},

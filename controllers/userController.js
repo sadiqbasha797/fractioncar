@@ -270,6 +270,32 @@ const createUser = async (req, res) => {
     const verificationCode = generateVerificationCode();
     const tokenExpiry = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
 
+    // Handle KYC file upload
+    let kycDocs = [];
+    if (req.file) {
+      try {
+        // Upload to Cloudinary
+        const result = await cloudinary.uploader.upload(req.file.path);
+        
+        // Delete the temporary file
+        fs.unlinkSync(req.file.path);
+        
+        // Add KYC document URL to the array
+        kycDocs.push(result.secure_url);
+      } catch (uploadError) {
+        logger(`Error uploading KYC document to Cloudinary: ${uploadError.message}`);
+        // Delete the temporary file if it exists
+        if (fs.existsSync(req.file.path)) {
+          fs.unlinkSync(req.file.path);
+        }
+        return res.status(500).json({
+          status: 'failed',
+          body: {},
+          message: 'Failed to upload KYC document'
+        });
+      }
+    }
+
     // Create new user
     const user = new User({
       name,
@@ -282,7 +308,9 @@ const createUser = async (req, res) => {
       pincode,
       logintoken: verificationCode,
       tokensExpiry: tokenExpiry,
-      verified: false
+      verified: false,
+      kycDocs: kycDocs,
+      kycStatus: kycDocs.length > 0 ? 'submitted' : 'pending'
     });
 
     await user.save();
@@ -314,6 +342,10 @@ const createUser = async (req, res) => {
     });
   } catch (error) {
     logger(`Error in createUser: ${error.message}`);
+    // Clean up uploaded file if it exists
+    if (req.file && fs.existsSync(req.file.path)) {
+      fs.unlinkSync(req.file.path);
+    }
     res.status(500).json({
       status: 'failed',
       body: {},
@@ -377,9 +409,42 @@ const updateUserById = async (req, res) => {
       updateFields.password = await bcrypt.hash(password, saltRounds);
     }
 
+    // Handle KYC file upload
+    if (req.file) {
+      const cloudinary = require('../config/cloudinary');
+      const fs = require('fs');
+      
+      try {
+        // Upload to Cloudinary
+        const result = await cloudinary.uploader.upload(req.file.path);
+        
+        // Delete the temporary file
+        fs.unlinkSync(req.file.path);
+        
+        // Add KYC document URL to the user's kycDocs array
+        updateFields.$push = { kycDocs: result.secure_url };
+        
+        // Update KYC status to submitted if it was pending
+        if (userToUpdate.kycStatus === 'pending') {
+          updateFields.kycStatus = 'submitted';
+        }
+      } catch (uploadError) {
+        logger(`Error uploading KYC document to Cloudinary: ${uploadError.message}`);
+        // Delete the temporary file if it exists
+        if (fs.existsSync(req.file.path)) {
+          fs.unlinkSync(req.file.path);
+        }
+        return res.status(500).json({
+          status: 'failed',
+          body: {},
+          message: 'Failed to upload KYC document'
+        });
+      }
+    }
+
     const updatedUser = await User.findByIdAndUpdate(
       userId,
-      { $set: updateFields },
+      updateFields,
       { new: true, runValidators: true }
     ).select('-password');
 
@@ -398,6 +463,10 @@ const updateUserById = async (req, res) => {
     });
   } catch (error) {
     logger(`Error in updateUserById: ${error.message}`);
+    // Clean up uploaded file if it exists
+    if (req.file && fs.existsSync(req.file.path)) {
+      fs.unlinkSync(req.file.path);
+    }
     res.status(500).json({
       status: 'failed',
       body: {},

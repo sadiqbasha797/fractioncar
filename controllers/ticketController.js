@@ -7,6 +7,10 @@ const NotificationService = require('../utils/notificationService');
 // Create a new ticket
 const createTicket = async (req, res) => {
   try {
+    // Debug: Log the incoming request (remove in production)
+    // console.log('Create ticket request body:', req.body);
+    // console.log('User from token:', req.user);
+    
     const {
       userid,
       carid,
@@ -20,6 +24,56 @@ const createTicket = async (req, res) => {
       ticketstatus,
       resold
     } = req.body;
+
+    // Validate required fields
+    if (!userid || !carid || !ticketcustomid || !ticketprice || !pricepaid || !pendingamount || !ticketbroughtdate) {
+      return res.status(400).json({
+        status: 'failed',
+        body: {},
+        message: 'Missing required fields. Please ensure all required fields are filled.'
+      });
+    }
+
+    // Validate data types
+    if (typeof ticketprice !== 'number' || typeof pricepaid !== 'number' || typeof pendingamount !== 'number') {
+      return res.status(400).json({
+        status: 'failed',
+        body: {},
+        message: 'Invalid data types. Price fields must be numbers.'
+      });
+    }
+
+    // Validate that pending amount equals ticket price minus price paid
+    if (pendingamount !== (ticketprice - pricepaid)) {
+      return res.status(400).json({
+        status: 'failed',
+        body: {},
+        message: 'Pending amount must equal ticket price minus price paid.'
+      });
+    }
+
+    // Clean up empty string fields that should be undefined for MongoDB validation
+    const cleanedData = {
+      userid,
+      carid,
+      ticketcustomid,
+      ticketprice,
+      pricepaid,
+      pendingamount,
+      ticketbroughtdate,
+      ticketstatus: ticketstatus || 'active',
+      resold: resold || false,
+      createdby: req.user.id,
+      createdByModel: req.user.role === 'superadmin' ? 'SuperAdmin' : 'Admin'
+    };
+
+    // Only include optional fields if they have valid values
+    if (comments && comments.trim() !== '') {
+      cleanedData.comments = comments;
+    }
+    if (paymentid && paymentid.trim() !== '') {
+      cleanedData.paymentid = paymentid;
+    }
 
     // Fetch car details to get contractYears
     const car = await Car.findById(carid);
@@ -37,29 +91,16 @@ const createTicket = async (req, res) => {
     const expiryDate = new Date(broughtDate);
     expiryDate.setFullYear(expiryDate.getFullYear() + contractYears);
 
-    const ticket = new Ticket({
-      userid,
-      carid,
-      ticketcustomid,
-      ticketprice,
-      pricepaid,
-      pendingamount,
-      ticketexpiry: expiryDate,
-      ticketbroughtdate,
-      comments,
-      paymentid,
-      ticketstatus,
-      resold,
-      createdby: req.user.id,
-      createdByModel: req.user.role === 'superadmin' ? 'SuperAdmin' : 'Admin'
-    });
+    // Add calculated fields to cleaned data
+    cleanedData.ticketexpiry = expiryDate;
+
+    const ticket = new Ticket(cleanedData);
 
     await ticket.save();
 
     // Create notifications after successful ticket creation
     try {
       const user = await User.findById(userid);
-      const car = await Car.findById(carid);
       
       if (user && car) {
         // User notification
@@ -81,10 +122,12 @@ const createTicket = async (req, res) => {
     });
   } catch (error) {
     logger(`Error in createTicket: ${error.message}`);
+    // console.error('Full error details:', error);
     res.status(500).json({
       status: 'failed',
       body: {},
-      message: 'Internal server error'
+      message: 'Internal server error',
+      error: error.message
     });
   }
 };
@@ -287,3 +330,5 @@ module.exports = {
   deleteTicket,
   getUserTickets
 };
+
+

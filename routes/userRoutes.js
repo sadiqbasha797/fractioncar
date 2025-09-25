@@ -3,6 +3,7 @@ const router = express.Router();
 const userController = require('../controllers/userController');
 const authMiddleware = require('../middleware/authMiddleware');
 const upload = require('../config/multer');
+const uploadKycDocument = require('../config/kycMulter');
 
 // All routes require user authentication
 router.use(authMiddleware(['user', 'admin', 'superadmin']));
@@ -23,10 +24,10 @@ router.put('/profile/government-id', userController.updateGovernmentId);
 router.get('/', userController.getAllUsers);
 
 // Create user (admin/superadmin only)
-router.post('/', userController.createUser);
+router.post('/', uploadKycDocument.single('kycFile'), userController.createUser);
 
 // Update user by ID (admin/superadmin only)
-router.put('/:userId', userController.updateUserById);
+router.put('/:userId', uploadKycDocument.single('kycFile'), userController.updateUserById);
 
 // Delete user by ID (admin/superadmin only)
 router.delete('/:userId', userController.deleteUserById);
