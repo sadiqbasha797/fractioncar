@@ -55,6 +55,15 @@ const createBooking = async (req, res) => {
 
     await booking.save();
 
+    // Update retargeting notification status
+    try {
+      const RetargetingNotificationService = require('../utils/retargetingNotificationService');
+      await RetargetingNotificationService.updatePurchaseStatus(req.user.id, carid, 'booking');
+    } catch (retargetingError) {
+      logger(`Error updating retargeting status for booking: ${retargetingError.message}`);
+      // Don't fail the request if retargeting update fails
+    }
+
     // Send emails and create notifications after successful booking creation
     try {
       // Get user and car details for email

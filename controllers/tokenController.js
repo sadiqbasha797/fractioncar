@@ -93,6 +93,15 @@ const createToken = async (req, res) => {
       $inc: { tokensavailble: -1 }
     });
 
+    // Update retargeting notification status
+    try {
+      const RetargetingNotificationService = require('../utils/retargetingNotificationService');
+      await RetargetingNotificationService.updatePurchaseStatus(userid, carid, 'token');
+    } catch (retargetingError) {
+      logger(`Error updating retargeting status for token purchase: ${retargetingError.message}`);
+      // Don't fail the request if retargeting update fails
+    }
+
     // Check if bookings should be stopped for this car after token decrement
     try {
       await BookingAvailabilityService.stopBookingsIfNeeded(carid);

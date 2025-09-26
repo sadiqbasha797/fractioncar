@@ -1,81 +1,129 @@
 # Database Migration Scripts
 
-This directory contains scripts to update the database schema and migrate existing data.
+This directory contains migration scripts for the Most Browsed Cars feature.
 
-## Update Cars StopBookings Field
+## Available Migrations
 
-### Problem
-Existing car records in the database don't have the `stopBookings` field that was added to the Car model. This field is required for the new stop bookings functionality.
+### 1. Add ViewCount Field (`migrate-add-viewcount.js`)
+- **Purpose**: Adds the `viewCount` field to all existing cars
+- **Safe**: Yes - only adds new field with default value 0
+- **When to use**: Run this first when deploying the most browsed cars feature
 
-### Solution
-Run one of the migration scripts to add the `stopBookings` field to all existing car records with a default value of `false` (bookings allowed).
-
-### Available Scripts
-
-#### Option 1: Using Mongoose (Recommended)
 ```bash
-cd backend
-npm run update-cars-stopbookings
+node scripts/migrate-add-viewcount.js
 ```
 
-#### Option 2: Using MongoDB Driver
+### 2. Add Sample Views (`migrate-add-sample-views.js`)
+- **Purpose**: Adds random sample view counts to cars for testing
+- **Safe**: Yes - only updates existing viewCount values
+- **When to use**: For testing/demo purposes to see the feature in action
+
 ```bash
-cd backend
-npm run update-cars-mongodb
+node scripts/migrate-add-sample-views.js
 ```
 
-### What the Scripts Do
+### 3. Remove ViewCount Field (`migrate-remove-viewcount.js`)
+- **Purpose**: Removes the `viewCount` field from all cars (rollback)
+- **Safe**: No - permanently deletes view count data
+- **When to use**: Only if you need to completely remove the feature
 
-1. **Connect to MongoDB** using the connection string from environment variables
-2. **Find all cars** that don't have the `stopBookings` field
-3. **Update all matching cars** to add `stopBookings: false`
-4. **Verify the update** by counting cars with the new field
-5. **Show sample results** to confirm the update worked
-
-### Expected Output
-
-```
-Connecting to MongoDB...
-Connected successfully to MongoDB
-Total cars in database: 25
-Cars without stopBookings field: 25
-Updating cars...
-Successfully updated 25 cars
-All cars now have stopBookings field set to false (bookings allowed)
-Verification: 25 cars now have stopBookings field
-Sample updated cars:
-- Toyota Camry: stopBookings = false
-- Honda Civic: stopBookings = false
-- BMW X5: stopBookings = false
-Update completed successfully!
-Database connection closed
+```bash
+node scripts/migrate-remove-viewcount.js
 ```
 
-### Safety Features
+## Using the Migration Runner
 
-- **Non-destructive**: Only adds the missing field, doesn't modify existing data
-- **Idempotent**: Can be run multiple times safely
-- **Verification**: Shows before/after counts to confirm success
-- **Sample output**: Displays examples of updated records
+The `run-migrations.js` script provides a convenient way to run migrations:
 
-### Environment Variables Required
+```bash
+# Show help
+node scripts/run-migrations.js help
 
-Make sure your `.env` file contains:
+# List all migrations
+node scripts/run-migrations.js list
+
+# Run specific migration
+node scripts/run-migrations.js add-viewcount
+node scripts/run-migrations.js add-sample-views
+node scripts/run-migrations.js remove-viewcount
 ```
-MONGODB_URI=mongodb://localhost:27017/your-database-name
+
+## Migration Workflow
+
+### For Production Deployment:
+
+1. **Deploy the code** with the new viewCount field
+2. **Run the basic migration**:
+   ```bash
+   node scripts/migrate-add-viewcount.js
+   ```
+3. **Verify** that all cars now have viewCount field
+4. **Start tracking** real user views
+
+### For Testing/Demo:
+
+1. **Run the basic migration**:
+   ```bash
+   node scripts/migrate-add-viewcount.js
+   ```
+2. **Add sample data**:
+   ```bash
+   node scripts/migrate-add-sample-views.js
+   ```
+3. **Test the feature** with realistic data
+
+### For Rollback:
+
+1. **Run the rollback migration**:
+   ```bash
+   node scripts/migrate-remove-viewcount.js
+   ```
+2. **Revert the code** to previous version
+
+## Environment Variables
+
+Make sure these environment variables are set:
+
+```bash
+MONGODB_URI=mongodb://localhost:27017/fraction
+# or your production MongoDB connection string
 ```
 
-### Troubleshooting
+## Safety Notes
+
+- ✅ **Safe migrations**: `add-viewcount`, `add-sample-views`
+- ⚠️ **Destructive migration**: `remove-viewcount` (permanently deletes data)
+- 🔒 **Always backup** your database before running migrations in production
+- 🧪 **Test migrations** in a development environment first
+
+## Troubleshooting
+
+### Migration fails with connection error:
+- Check your `MONGODB_URI` environment variable
+- Ensure MongoDB is running and accessible
+- Verify network connectivity
+
+### Migration shows "No cars found":
+- This is normal if your database is empty
+- The migration will complete successfully with no changes
+
+### Some cars still don't have viewCount after migration:
+- Check the migration logs for any errors
+- Run the migration again - it's safe to run multiple times
+- Manually verify a few cars in your database
+
+## Logs
+
+All migrations provide detailed logging:
+- ✅ Success messages
+- ❌ Error messages with stack traces
+- 📊 Statistics about affected records
+- 🔍 Verification of migration results
+
+## Support
 
 If you encounter issues:
-
-1. **Connection Error**: Check your MongoDB connection string in `.env`
-2. **Permission Error**: Ensure your MongoDB user has write permissions
-3. **No Cars Found**: The script will report if no cars need updating
-
-### After Running the Script
-
-Once the migration is complete:
-- All existing cars will have `stopBookings: false` (bookings allowed)
-- New cars created through the frontend will have the field by default
-- The stop bookings functionality will work for all cars
+1. Check the migration logs for specific error messages
+2. Verify your database connection and permissions
+3. Ensure you're running the migration from the correct directory
+4. Check that all required environment variables are set

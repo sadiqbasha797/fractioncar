@@ -47,6 +47,15 @@ const createBookNowToken = async (req, res) => {
       $inc: { bookNowTokenAvailable: -1 }
     });
 
+    // Update retargeting notification status
+    try {
+      const RetargetingNotificationService = require('../utils/retargetingNotificationService');
+      await RetargetingNotificationService.updatePurchaseStatus(userid, carid, 'bookNowToken');
+    } catch (retargetingError) {
+      logger(`Error updating retargeting status for book now token purchase: ${retargetingError.message}`);
+      // Don't fail the request if retargeting update fails
+    }
+
     // Send emails and create notifications after successful book now token creation
     try {
       // Get user and car details for email

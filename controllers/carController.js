@@ -560,6 +560,85 @@ const getCarsWithStopBookingsFilter = async (req, res) => {
   }
 };
 
+// Track car view (increment view count)
+const trackCarView = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user?.id; // Get user ID if authenticated
+
+    const car = await Car.findByIdAndUpdate(
+      id,
+      { $inc: { viewCount: 1 } },
+      { new: true }
+    );
+
+    if (!car) {
+      return res.status(404).json({
+        status: 'failed',
+        body: {},
+        message: 'Car not found'
+      });
+    }
+
+    // Track user view for retargeting if user is authenticated
+    if (userId) {
+      try {
+        const RetargetingNotificationService = require('../utils/retargetingNotificationService');
+        await RetargetingNotificationService.trackCarView(userId, id);
+      } catch (trackingError) {
+        logger(`Error tracking user view: ${trackingError.message}`);
+        // Don't fail the request if tracking fails
+      }
+    }
+
+    res.json({
+      status: 'success',
+      body: { 
+        car: {
+          _id: car._id,
+          viewCount: car.viewCount
+        }
+      },
+      message: 'Car view tracked successfully'
+    });
+  } catch (error) {
+    logger(`Error in trackCarView: ${error.message}`);
+    res.status(500).json({
+      status: 'failed',
+      body: {},
+      message: 'Internal server error'
+    });
+  }
+};
+
+// Get most browsed cars
+const getMostBrowsedCars = async (req, res) => {
+  try {
+    const { limit = 10 } = req.query;
+
+    const cars = await Car.find({ 
+      status: { $ne: 'cancelled' }, // Exclude cancelled cars
+      stopBookings: false // Only active cars
+    })
+      .sort({ viewCount: -1 })
+      .limit(parseInt(limit))
+      .select('carname brandname color milege seating features price fractionprice tokenprice amcperticket contractYears status ticketsavilble totaltickets tokensavailble bookNowTokenAvailable bookNowTokenPrice images location pincode description viewCount createdAt');
+
+    res.json({
+      status: 'success',
+      body: { cars },
+      message: 'Most browsed cars retrieved successfully'
+    });
+  } catch (error) {
+    logger(`Error in getMostBrowsedCars: ${error.message}`);
+    res.status(500).json({
+      status: 'failed',
+      body: {},
+      message: 'Internal server error'
+    });
+  }
+};
+
 module.exports = {
   createCar,
   getCars,
@@ -569,5 +648,7 @@ module.exports = {
   getCarsWithStopBookingsFilter,
   deleteCar,
   getPublicCars,
-  getPublicCarById
+  getPublicCarById,
+  trackCarView,
+  getMostBrowsedCars
 };

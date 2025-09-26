@@ -45,7 +45,8 @@ const NotificationSchema = new mongoose.Schema({
       'user_kyc_rejected',
       'manual_announcement',
       'system_maintenance',
-      'security_alert'
+      'security_alert',
+      'retargeting_notification'
     ]
   },
   

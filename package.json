@@ -8,7 +8,12 @@
     "start": "node index.js",
     "dev": "nodemon index.js",
     "update-cars-stopbookings": "node scripts/update-cars-stopbookings.js",
-    "update-cars-mongodb": "node scripts/update-cars-mongodb.js"
+    "update-cars-mongodb": "node scripts/update-cars-mongodb.js",
+    "migrate": "node scripts/run-migrations.js",
+    "migrate:add-viewcount": "node scripts/migrate-add-viewcount.js",
+    "migrate:add-sample-views": "node scripts/migrate-add-sample-views.js",
+    "migrate:remove-viewcount": "node scripts/migrate-remove-viewcount.js",
+    "debug:db": "node scripts/debug-database.js"
   },
   "keywords": [],
   "author": "",

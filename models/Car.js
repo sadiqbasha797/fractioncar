@@ -107,6 +107,11 @@ const carSchema = new mongoose.Schema({
         type: Boolean,
         default: false,
         required: false
+    },
+    viewCount: {
+        type: Number,
+        default: 0,
+        required: false
     }
 });
 
@@ -115,8 +120,10 @@ carSchema.index({ status: 1 });
 carSchema.index({ brandname: 1 });
 carSchema.index({ createdAt: 1 });
 carSchema.index({ stopBookings: 1 });
+carSchema.index({ viewCount: -1 }); // For most browsed cars queries
 carSchema.index({ status: 1, createdAt: 1 });
 carSchema.index({ status: 1, stopBookings: 1 });
+carSchema.index({ status: 1, viewCount: -1 }); // For most browsed active cars
 
 const Car = mongoose.model('Car', carSchema);
 

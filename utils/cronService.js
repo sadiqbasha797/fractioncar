@@ -3,6 +3,7 @@ const AMCReminderService = require('./amcReminderService');
 const AMCPenaltyService = require('./amcPenaltyService');
 const UserStatusService = require('./userStatusService');
 const BookingAvailabilityService = require('./bookingAvailabilityService');
+const RetargetingNotificationService = require('./retargetingNotificationService');
 const logger = require('./logger');
 
 class CronService {
@@ -71,6 +72,33 @@ class CronService {
         logger(`Booking availability check completed. ${result.bookingsStopped} bookings stopped for ${result.totalChecked} cars checked.`);
       } catch (error) {
         logger(`Error in booking availability check job: ${error.message}`);
+      }
+    }, {
+      scheduled: true,
+      timezone: "Asia/Kolkata"
+    });
+
+    // Retargeting Notifications - Run twice daily at 2:00 PM and 8:00 PM
+    cron.schedule('0 14 * * *', async () => {
+      try {
+        logger('Starting afternoon retargeting notification job...');
+        const result = await RetargetingNotificationService.checkAndSendRetargetingNotifications();
+        logger(`Afternoon retargeting notification job completed. ${result.notificationsSent} notifications sent to ${result.usersNotified} users for ${result.carsPromoted} cars.`);
+      } catch (error) {
+        logger(`Error in afternoon retargeting notification job: ${error.message}`);
+      }
+    }, {
+      scheduled: true,
+      timezone: "Asia/Kolkata"
+    });
+
+    cron.schedule('0 20 * * *', async () => {
+      try {
+        logger('Starting evening retargeting notification job...');
+        const result = await RetargetingNotificationService.checkAndSendRetargetingNotifications();
+        logger(`Evening retargeting notification job completed. ${result.notificationsSent} notifications sent to ${result.usersNotified} users for ${result.carsPromoted} cars.`);
+      } catch (error) {
+        logger(`Error in evening retargeting notification job: ${error.message}`);
       }
     }, {
       scheduled: true,

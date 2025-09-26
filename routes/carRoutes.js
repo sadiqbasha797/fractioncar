@@ -7,11 +7,20 @@ const upload = require('../config/multer');
 // Public route to get all cars without authentication
 router.get('/public', carController.getPublicCars);
 
+// Public route to get most browsed cars (must be before /public/:id)
+router.get('/public/most-browsed', carController.getMostBrowsedCars);
+
 // Public route to get a car by ID without authentication
 router.get('/public/:id', carController.getPublicCarById);
 
 // Public route to update bookNowTokenAvailable count (for payment updates)
 router.put('/public/:id/book-now-token-count', carController.updateBookNowTokenCount);
+
+// Public route to track car view (for anonymous users)
+router.post('/public/:id/view', carController.trackCarView);
+
+// User route to track car view (for authenticated users - includes retargeting)
+router.post('/:id/view', authMiddleware(['user']), carController.trackCarView);
 
 // All routes below this line require admin or superadmin authentication
 router.use(authMiddleware(['admin', 'superadmin']));
