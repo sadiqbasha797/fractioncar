@@ -30,6 +30,17 @@ const createCar = async (req, res) => {
       description
     } = req.body;
 
+    // Trim string fields to prevent duplicate entries
+    const trimmedData = {
+      carname: carname?.trim(),
+      color: color?.trim(),
+      milege: milege?.trim(),
+      brandname: brandname?.trim(),
+      location: location?.trim(),
+      pincode: pincode?.trim(),
+      description: description?.trim()
+    };
+
     // Handle image uploads
     let images = [];
     if (req.files && req.files.length > 0) {
@@ -66,12 +77,12 @@ const createCar = async (req, res) => {
     }
 
     const car = new Car({
-      carname,
-      color,
-      milege,
+      carname: trimmedData.carname,
+      color: trimmedData.color,
+      milege: trimmedData.milege,
       seating,
       features,
-      brandname,
+      brandname: trimmedData.brandname,
       price,
       fractionprice,
       tokenprice,
@@ -83,9 +94,9 @@ const createCar = async (req, res) => {
       bookNowTokenAvailable,
       bookNowTokenPrice,
       images,
-      location,
-      pincode,
-      description,
+      location: trimmedData.location,
+      pincode: trimmedData.pincode,
+      description: trimmedData.description,
       createdBy: req.user.id,
       createdByModel: req.user.role === 'superadmin' ? 'SuperAdmin' : 'Admin'
     });
@@ -198,6 +209,17 @@ const updateCar = async (req, res) => {
       stopBookings
     } = req.body;
 
+    // Trim string fields to prevent duplicate entries
+    const trimmedData = {
+      carname: carname?.trim(),
+      color: color?.trim(),
+      milege: milege?.trim(),
+      brandname: brandname?.trim(),
+      location: location?.trim(),
+      pincode: pincode?.trim(),
+      description: description?.trim()
+    };
+
     // Convert stopBookings string to boolean if provided
     const stopBookingsValue = stopBookings !== undefined ? 
       (stopBookings === 'true' || stopBookings === true) : undefined;
@@ -307,12 +329,12 @@ const updateCar = async (req, res) => {
     const updatedCar = await Car.findByIdAndUpdate(
       req.params.id,
       {
-        carname,
-        color,
-        milege,
+        carname: trimmedData.carname,
+        color: trimmedData.color,
+        milege: trimmedData.milege,
         seating,
         features,
-        brandname,
+        brandname: trimmedData.brandname,
         price,
         fractionprice,
         tokenprice,
@@ -325,9 +347,9 @@ const updateCar = async (req, res) => {
         bookNowTokenAvailable,
         bookNowTokenPrice,
         images,
-        location,
-        pincode,
-        description,
+        location: trimmedData.location,
+        pincode: trimmedData.pincode,
+        description: trimmedData.description,
         stopBookings: finalStopBookingsValue
       },
       { new: true }

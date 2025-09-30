@@ -1,7 +1,8 @@
 const HeroContent = require('../models/HeroContent');
 const Brands = require('../models/Brands');
 const SimpleSteps = require('../models/SimpleSteps');
-const SimpleStepsSection = require('../models/SimpleStepsSection');
+const SimpleStepsVideo = require('../models/SimpleStepsVideo'); // Added SimpleStepsVideo model
+// Removed SimpleStepsSection model and related APIs
 const FAQ = require('../models/FAQ');
 const FeaturedCars = require('../models/FeaturedCars');
 const Car = require('../models/Car');
@@ -185,6 +186,10 @@ const createBrand = async (req, res) => {
     const { brandName, subText } = req.body;
     let brandLogo = req.body.brandLogo; // Default to provided URL
 
+    // Trim string fields to prevent duplicate entries
+    const trimmedBrandName = brandName?.trim();
+    const trimmedSubText = subText?.trim();
+
     // Handle logo upload if file is provided
     if (req.file) {
       try {
@@ -203,9 +208,9 @@ const createBrand = async (req, res) => {
     }
 
     const brand = new Brands({ 
-      brandName, 
+      brandName: trimmedBrandName, 
       brandLogo, 
-      subText, 
+      subText: trimmedSubText, 
       createdBy: req.user.id 
     });
     await brand.save();
@@ -275,6 +280,10 @@ const updateBrand = async (req, res) => {
     const { brandName, subText } = req.body;
     let brandLogo = req.body.brandLogo; // Default to provided URL
 
+    // Trim string fields to prevent duplicate entries
+    const trimmedBrandName = brandName?.trim();
+    const trimmedSubText = subText?.trim();
+
     // Handle logo upload if file is provided
     if (req.file) {
       try {
@@ -294,7 +303,7 @@ const updateBrand = async (req, res) => {
 
     const updatedBrand = await Brands.findByIdAndUpdate(
       req.params.id,
-      { brandName, brandLogo, subText },
+      { brandName: trimmedBrandName, brandLogo, subText: trimmedSubText },
       { new: true }
     ).populate('createdBy', 'name email');
     if (!updatedBrand) {
@@ -347,10 +356,11 @@ const deleteBrand = async (req, res) => {
 
 // ==================== SIMPLE STEPS CRUD ====================
 
-// Create a new Simple Step
+// Create a new Simple Step (without video support now)
 const createSimpleStep = async (req, res) => {
   try {
     const { stepTitle, stepName } = req.body;
+
     const simpleStep = new SimpleSteps({ 
       stepTitle, 
       stepName, 
@@ -417,15 +427,17 @@ const getSimpleStepById = async (req, res) => {
   }
 };
 
-// Update Simple Step by ID
+// Update Simple Step by ID (without video support now)
 const updateSimpleStep = async (req, res) => {
   try {
     const { stepTitle, stepName } = req.body;
+
     const updatedSimpleStep = await SimpleSteps.findByIdAndUpdate(
       req.params.id,
       { stepTitle, stepName },
       { new: true }
     ).populate('createdBy', 'name email');
+    
     if (!updatedSimpleStep) {
       return res.status(404).json({
         status: 'failed',
@@ -433,6 +445,7 @@ const updateSimpleStep = async (req, res) => {
         message: 'Simple step not found'
       });
     }
+    
     res.json({
       status: 'success',
       body: { simpleStep: updatedSimpleStep },
@@ -474,61 +487,52 @@ const deleteSimpleStep = async (req, res) => {
   }
 };
 
-// ==================== SIMPLE STEPS SECTION CRUD ====================
+// SimpleStepsSection APIs removed
 
-// Create or Update Simple Steps Section
-const createOrUpdateSimpleStepsSection = async (req, res) => {
+// ==================== SIMPLE STEPS VIDEO CRUD ====================
+
+// Create a new Simple Steps Video
+const createSimpleStepsVideo = async (req, res) => {
   try {
-    const { sectionTitle, sectionDescription } = req.body;
-    let video = req.body.video; // Default to provided URL
+    let video1 = req.body.video1 || '';
+    let video2 = req.body.video2 || '';
 
-    // Handle video upload if file is provided
-    if (req.file) {
+    // Handle uploaded files (if any). Expect fields: video1, video2
+    if (req.files && Array.isArray(req.files.video1) && req.files.video1[0]) {
       try {
-        const result = await cloudinary.uploader.upload(req.file.path, {
-          resource_type: "video"
-        });
-        video = result.secure_url;
-        // Delete the temporary file
-        fs.unlinkSync(req.file.path);
-      } catch (uploadError) {
-        logger(`Error uploading video to Cloudinary: ${uploadError.message}`);
-        return res.status(500).json({
-          status: 'failed',
-          body: {},
-          message: 'Error uploading video'
-        });
+        const result1 = await cloudinary.uploader.upload(req.files.video1[0].path, { resource_type: 'video' });
+        video1 = result1.secure_url;
+        fs.unlinkSync(req.files.video1[0].path);
+      } catch (uploadErr1) {
+        logger(`Error uploading video1: ${uploadErr1.message}`);
+        return res.status(500).json({ status: 'failed', body: {}, message: 'Error uploading video1' });
       }
     }
 
-    // Check if section already exists
-    let section = await SimpleStepsSection.findOne();
-    
-    if (section) {
-      // Update existing section
-      section.sectionTitle = sectionTitle || section.sectionTitle;
-      section.sectionDescription = sectionDescription || section.sectionDescription;
-      if (video) section.video = video;
-      section.updatedAt = Date.now();
-      await section.save();
-    } else {
-      // Create new section
-      section = new SimpleStepsSection({
-        sectionTitle: sectionTitle || "Simple Steps",
-        sectionDescription,
-        video,
-        createdBy: req.user.id
-      });
-      await section.save();
+    if (req.files && Array.isArray(req.files.video2) && req.files.video2[0]) {
+      try {
+        const result2 = await cloudinary.uploader.upload(req.files.video2[0].path, { resource_type: 'video' });
+        video2 = result2.secure_url;
+        fs.unlinkSync(req.files.video2[0].path);
+      } catch (uploadErr2) {
+        logger(`Error uploading video2: ${uploadErr2.message}`);
+        return res.status(500).json({ status: 'failed', body: {}, message: 'Error uploading video2' });
+      }
     }
 
-    res.json({
+    const simpleStepsVideo = new SimpleStepsVideo({ 
+      video1,
+      video2,
+      createdBy: req.user.id 
+    });
+    await simpleStepsVideo.save();
+    res.status(201).json({
       status: 'success',
-      body: { section },
-      message: 'Simple steps section updated successfully'
+      body: { simpleStepsVideo },
+      message: 'Simple steps video created successfully'
     });
   } catch (error) {
-    logger(`Error in createOrUpdateSimpleStepsSection: ${error.message}`);
+    logger(`Error in createSimpleStepsVideo: ${error.message}`);
     res.status(500).json({
       status: 'failed',
       body: {},
@@ -537,28 +541,17 @@ const createOrUpdateSimpleStepsSection = async (req, res) => {
   }
 };
 
-// Get Simple Steps Section
-const getSimpleStepsSection = async (req, res) => {
+// Get all Simple Steps Videos
+const getSimpleStepsVideos = async (req, res) => {
   try {
-    let section = await SimpleStepsSection.findOne().populate('createdBy', 'name email');
-    
-    if (!section) {
-      // Create default section if none exists
-      section = new SimpleStepsSection({
-        sectionTitle: "Simple Steps",
-        sectionDescription: "Follow these simple steps to get started",
-        createdBy: req.user?.id
-      });
-      await section.save();
-    }
-
+    const simpleStepsVideos = await SimpleStepsVideo.find().populate('createdBy', 'name email');
     res.json({
       status: 'success',
-      body: { section },
-      message: 'Simple steps section retrieved successfully'
+      body: { simpleStepsVideos },
+      message: 'Simple steps videos retrieved successfully'
     });
   } catch (error) {
-    logger(`Error in getSimpleStepsSection: ${error.message}`);
+    logger(`Error in getSimpleStepsVideos: ${error.message}`);
     res.status(500).json({
       status: 'failed',
       body: {},
@@ -567,27 +560,142 @@ const getSimpleStepsSection = async (req, res) => {
   }
 };
 
-// Get Simple Steps Section (Public)
-const getPublicSimpleStepsSection = async (req, res) => {
+// Get Simple Steps Video by ID
+const getSimpleStepsVideoById = async (req, res) => {
   try {
-    let section = await SimpleStepsSection.findOne();
-    
-    if (!section) {
-      // Return default section data if none exists
-      section = {
-        sectionTitle: "Simple Steps",
-        sectionDescription: "Follow these simple steps to get started",
-        video: null
-      };
+    const simpleStepsVideo = await SimpleStepsVideo.findById(req.params.id).populate('createdBy', 'name email');
+    if (!simpleStepsVideo) {
+      return res.status(404).json({
+        status: 'failed',
+        body: {},
+        message: 'Simple steps video not found'
+      });
     }
-
     res.json({
       status: 'success',
-      body: { section },
-      message: 'Simple steps section retrieved successfully'
+      body: { simpleStepsVideo },
+      message: 'Simple steps video retrieved successfully'
     });
   } catch (error) {
-    logger(`Error in getPublicSimpleStepsSection: ${error.message}`);
+    logger(`Error in getSimpleStepsVideoById: ${error.message}`);
+    res.status(500).json({
+      status: 'failed',
+      body: {},
+      message: 'Internal server error'
+    });
+  }
+};
+
+// Update Simple Steps Video by ID
+const updateSimpleStepsVideo = async (req, res) => {
+  try {
+    const existing = await SimpleStepsVideo.findById(req.params.id);
+    if (!existing) {
+      return res.status(404).json({ status: 'failed', body: {}, message: 'Simple steps video not found' });
+    }
+
+    // Start with current values, override with provided URLs, and then with uploads
+    let video1 = typeof req.body.video1 === 'string' ? req.body.video1 : existing.video1;
+    let video2 = typeof req.body.video2 === 'string' ? req.body.video2 : existing.video2;
+
+    if (req.files && Array.isArray(req.files.video1) && req.files.video1[0]) {
+      try {
+        const result1 = await cloudinary.uploader.upload(req.files.video1[0].path, { resource_type: 'video' });
+        video1 = result1.secure_url;
+        fs.unlinkSync(req.files.video1[0].path);
+      } catch (uploadErr1) {
+        logger(`Error uploading video1: ${uploadErr1.message}`);
+        return res.status(500).json({ status: 'failed', body: {}, message: 'Error uploading video1' });
+      }
+    }
+
+    if (req.files && Array.isArray(req.files.video2) && req.files.video2[0]) {
+      try {
+        const result2 = await cloudinary.uploader.upload(req.files.video2[0].path, { resource_type: 'video' });
+        video2 = result2.secure_url;
+        fs.unlinkSync(req.files.video2[0].path);
+      } catch (uploadErr2) {
+        logger(`Error uploading video2: ${uploadErr2.message}`);
+        return res.status(500).json({ status: 'failed', body: {}, message: 'Error uploading video2' });
+      }
+    }
+
+    existing.video1 = video1;
+    existing.video2 = video2;
+    await existing.save();
+
+    const updatedSimpleStepsVideo = await SimpleStepsVideo.findById(existing._id).populate('createdBy', 'name email');
+    res.json({
+      status: 'success',
+      body: { simpleStepsVideo: updatedSimpleStepsVideo },
+      message: 'Simple steps video updated successfully'
+    });
+  } catch (error) {
+    logger(`Error in updateSimpleStepsVideo: ${error.message}`);
+    res.status(500).json({
+      status: 'failed',
+      body: {},
+      message: 'Internal server error'
+    });
+  }
+};
+
+// Delete Simple Steps Video by ID
+const deleteSimpleStepsVideo = async (req, res) => {
+  try {
+    const deletedSimpleStepsVideo = await SimpleStepsVideo.findByIdAndDelete(req.params.id);
+    if (!deletedSimpleStepsVideo) {
+      return res.status(404).json({
+        status: 'failed',
+        body: {},
+        message: 'Simple steps video not found'
+      });
+    }
+    res.json({
+      status: 'success',
+      body: {},
+      message: 'Simple steps video deleted successfully'
+    });
+  } catch (error) {
+    logger(`Error in deleteSimpleStepsVideo: ${error.message}`);
+    res.status(500).json({
+      status: 'failed',
+      body: {},
+      message: 'Internal server error'
+    });
+  }
+};
+
+// Get all Simple Steps Videos (Public)
+const getPublicSimpleStepsVideos = async (req, res) => {
+  try {
+    const simpleStepsVideos = await SimpleStepsVideo.find().populate('createdBy', 'name email');
+    res.json({
+      status: 'success',
+      body: { simpleStepsVideos },
+      message: 'Simple steps videos retrieved successfully'
+    });
+  } catch (error) {
+    logger(`Error in getPublicSimpleStepsVideos: ${error.message}`);
+    res.status(500).json({
+      status: 'failed',
+      body: {},
+      message: 'Internal server error'
+    });
+  }
+};
+
+// Get all Simple Steps Videos (Absolutely Public - no authentication required)
+const getAbsolutelyPublicSimpleStepsVideos = async (req, res) => {
+  try {
+    const simpleStepsVideos = await SimpleStepsVideo.find(); // No .populate('createdBy')
+    res.json({
+      status: 'success',
+      body: { simpleStepsVideos },
+      message: 'Simple steps videos retrieved successfully for public view'
+    });
+  } catch (error) {
+    logger(`Error in getAbsolutelyPublicSimpleStepsVideos: ${error.message}`);
     res.status(500).json({
       status: 'failed',
       body: {},
@@ -960,9 +1068,12 @@ module.exports = {
   updateSimpleStep,
   deleteSimpleStep,
   
-  // Simple Steps Section CRUD
-  createOrUpdateSimpleStepsSection,
-  getSimpleStepsSection,
+  // Simple Steps Video CRUD
+  createSimpleStepsVideo,
+  getSimpleStepsVideos,
+  getSimpleStepsVideoById,
+  updateSimpleStepsVideo,
+  deleteSimpleStepsVideo,
   
   // FAQ CRUD
   createFaq,
@@ -980,7 +1091,8 @@ module.exports = {
   getPublicHeroContent,
   getPublicBrands,
   getPublicSimpleSteps,
-  getPublicSimpleStepsSection,
   getPublicFaqs,
-  getPublicFeaturedCars
+  getPublicFeaturedCars,
+  getPublicSimpleStepsVideos, // Added public API for simple steps videos
+  getAbsolutelyPublicSimpleStepsVideos // Added absolutely public API for simple steps videos
 };

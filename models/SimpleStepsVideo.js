@@ -1,13 +1,12 @@
 const mongoose = require('mongoose');
 
-const simpleStepsSchema = new mongoose.Schema({
-    stepTitle: {
+const simpleStepsVideoSchema = new mongoose.Schema({
+    video1: {
         type: String
     },
-    stepName: {
+    video2: {
         type: String
     },
-    // Removed video1 and video2 fields
     createdBy: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Admin'
@@ -18,6 +17,6 @@ const simpleStepsSchema = new mongoose.Schema({
     }
 });
 
-const SimpleSteps = mongoose.model('SimpleSteps', simpleStepsSchema);
+const SimpleStepsVideo = mongoose.model('SimpleStepsVideo', simpleStepsVideoSchema);
 
-module.exports = SimpleSteps;
+module.exports = SimpleStepsVideo;

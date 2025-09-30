@@ -139,11 +139,11 @@ const getOrderDetails = async (req, res) => {
   }
 };
 
-// Get all payments/transactions with pagination
+// Get all payments/transactions with pagination from database
 const getAllPayments = async (req, res) => {
   try {
     const { 
-      count = 100, 
+      count = 10, 
       skip = 0, 
       from, 
       to,
@@ -151,47 +151,144 @@ const getAllPayments = async (req, res) => {
       method 
     } = req.query;
 
-    // Build options object
-    const options = {
-      count: Math.min(parseInt(count), 100), // Limit to max 100 per request
-      skip: parseInt(skip)
-    };
+    const Token = require('../models/Token');
+    const BookNowToken = require('../models/BookNowToken');
+    const AMC = require('../models/AMC');
 
+    // Build query filters
+    let query = {};
+    
     // Add date filters if provided
-    if (from) {
-      options.from = Math.floor(new Date(from).getTime() / 1000); // Convert to Unix timestamp
-    }
-    if (to) {
-      options.to = Math.floor(new Date(to).getTime() / 1000); // Convert to Unix timestamp
+    if (from || to) {
+      query.createdAt = {};
+      if (from) {
+        query.createdAt.$gte = new Date(from);
+      }
+      if (to) {
+        query.createdAt.$lte = new Date(to);
+      }
     }
 
-    // Fetch payments from Razorpay
-    const payments = await razorpay.payments.all(options);
-
-    // Filter by status or method if provided
-    let filteredPayments = payments.items;
+    // Add status filter if provided
     if (status) {
-      filteredPayments = filteredPayments.filter(payment => 
-        payment.status.toLowerCase() === status.toLowerCase()
-      );
+      query.status = status;
     }
+
+    // Add method filter if provided (this would need to be stored in your models)
     if (method) {
-      filteredPayments = filteredPayments.filter(payment => 
-        payment.method && payment.method.toLowerCase() === method.toLowerCase()
-      );
+      query.paymentMethod = method;
     }
+
+    // Get all payments from different models
+    const [tokens, bookNowTokens, amcs] = await Promise.all([
+      Token.find({ ...query, razorpayPaymentId: { $exists: true, $ne: null } })
+        .populate('userid', 'name email phone')
+        .populate('carid', 'carname brandname')
+        .sort({ createdAt: -1 }),
+      BookNowToken.find({ ...query, razorpayPaymentId: { $exists: true, $ne: null } })
+        .populate('userid', 'name email phone')
+        .populate('carid', 'carname brandname')
+        .sort({ createdAt: -1 }),
+      AMC.find({ ...query, 'amcamount.razorpayPaymentId': { $exists: true, $ne: null } })
+        .populate('userid', 'name email phone')
+        .populate('carid', 'carname brandname')
+        .sort({ createdAt: -1 })
+    ]);
+
+    // Transform data to match Razorpay format
+    const allPayments = [];
+
+    // Process tokens
+    tokens.forEach(token => {
+      allPayments.push({
+        id: token.razorpayPaymentId,
+        entity: 'payment',
+        amount: token.amountpaid * 100, // Convert to paise
+        currency: 'INR',
+        status: 'captured',
+        order_id: token.customtokenid,
+        method: 'upi', // Default method, you can store this in your model
+        email: token.userid?.email || 'user@example.com',
+        contact: token.userid?.phone || '+919999999999',
+        created_at: Math.floor(new Date(token.createdAt).getTime() / 1000),
+        description: `Token purchase for ${token.carid?.carname || 'Car'}`,
+        type: 'token',
+        transactionId: token._id
+      });
+    });
+
+    // Process book now tokens
+    bookNowTokens.forEach(bookNowToken => {
+      allPayments.push({
+        id: bookNowToken.razorpayPaymentId,
+        entity: 'payment',
+        amount: bookNowToken.amountpaid * 100, // Convert to paise
+        currency: 'INR',
+        status: 'captured',
+        order_id: bookNowToken.customtokenid,
+        method: 'upi', // Default method
+        email: bookNowToken.userid?.email || 'user@example.com',
+        contact: bookNowToken.userid?.phone || '+919999999999',
+        created_at: Math.floor(new Date(bookNowToken.createdAt).getTime() / 1000),
+        description: `Book now token purchase for ${bookNowToken.carid?.carname || 'Car'}`,
+        type: 'booknowtoken',
+        transactionId: bookNowToken._id
+      });
+    });
+
+    // Process AMC payments
+    amcs.forEach(amc => {
+      if (amc.amcamount && amc.amcamount.razorpayPaymentId) {
+        allPayments.push({
+          id: amc.amcamount.razorpayPaymentId,
+          entity: 'payment',
+          amount: amc.amcamount.amount * 100, // Convert to paise
+          currency: 'INR',
+          status: 'captured',
+          order_id: amc.amcamount.orderId || `amc_${amc._id}`,
+          method: 'upi', // Default method
+          email: amc.userid?.email || 'user@example.com',
+          contact: amc.userid?.phone || '+919999999999',
+          created_at: Math.floor(new Date(amc.createdAt).getTime() / 1000),
+          description: `AMC payment for ${amc.carid?.carname || 'Car'}`,
+          type: 'amc',
+          transactionId: amc._id
+        });
+      }
+    });
+
+    // Sort by creation date (newest first)
+    allPayments.sort((a, b) => b.created_at - a.created_at);
+
+    // Apply pagination
+    const totalCount = allPayments.length;
+    const startIndex = parseInt(skip);
+    const endIndex = startIndex + parseInt(count);
+    const paginatedPayments = allPayments.slice(startIndex, endIndex);
+
+    // Calculate pagination info
+    const totalPages = Math.ceil(totalCount / parseInt(count));
+    const currentPage = Math.floor(parseInt(skip) / parseInt(count)) + 1;
+    const hasMore = endIndex < totalCount;
 
     res.status(200).json({
       success: true,
       message: 'Payments retrieved successfully',
       data: {
-        payments: filteredPayments,
-        count: filteredPayments.length,
-        has_more: payments.has_more,
-        total_count: payments.count
+        payments: paginatedPayments,
+        count: paginatedPayments.length,
+        has_more: hasMore,
+        total_count: totalCount,
+        pagination: {
+          currentPage,
+          totalPages,
+          totalItems: totalCount,
+          itemsPerPage: parseInt(count)
+        }
       }
     });
   } catch (error) {
+    console.error('Error in getAllPayments:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to fetch payments',

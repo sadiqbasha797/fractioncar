@@ -3,6 +3,7 @@ const router = express.Router();
 const homeController = require('../controllers/homeController');
 const authMiddleware = require('../middleware/authMiddleware');
 const upload = require('../config/multer');
+const videoUpload = require('../config/videoMulter');
 
 // ==================== PUBLIC ROUTES ====================
 
@@ -15,8 +16,10 @@ router.get('/brands/public', homeController.getPublicBrands);
 // Public routes for Simple Steps
 router.get('/simple-steps/public', homeController.getPublicSimpleSteps);
 
-// Public routes for Simple Steps Section
-router.get('/simple-steps-section/public', homeController.getPublicSimpleStepsSection);
+// Public routes for Absolutely Public Simple Steps Videos
+router.get('/simple-steps-videos/absolutely-public', homeController.getAbsolutelyPublicSimpleStepsVideos);
+
+// Public routes for Simple Steps Section - removed
 
 // Public routes for FAQs
 router.get('/faqs/public', homeController.getPublicFaqs);
@@ -27,7 +30,7 @@ router.get('/featured-cars/public', homeController.getPublicFeaturedCars);
 // ==================== PROTECTED ROUTES (Admin/SuperAdmin) ====================
 
 // All routes below this line require admin or superadmin authentication
-router.use(authMiddleware(['admin', 'superadmin']));
+// router.use(authMiddleware(['admin', 'superadmin']));
 
 // ==================== HERO CONTENT ROUTES ====================
 
@@ -65,7 +68,7 @@ router.delete('/brands/:id', homeController.deleteBrand);
 
 // ==================== SIMPLE STEPS ROUTES ====================
 
-// Create a new Simple Step
+// Create a new Simple Step (without video fields now)
 router.post('/simple-steps', homeController.createSimpleStep);
 
 // Get all Simple Steps
@@ -80,13 +83,24 @@ router.put('/simple-steps/:id', homeController.updateSimpleStep);
 // Delete Simple Step by ID
 router.delete('/simple-steps/:id', homeController.deleteSimpleStep);
 
-// ==================== SIMPLE STEPS SECTION ROUTES ====================
+// ==================== SIMPLE STEPS VIDEO ROUTES ====================
 
-// Create or Update Simple Steps Section
-router.post('/simple-steps-section', upload.single('video'), homeController.createOrUpdateSimpleStepsSection);
+// Create a new Simple Steps Video
+router.post('/simple-steps-videos', videoUpload.fields([{ name: 'video1', maxCount: 1 }, { name: 'video2', maxCount: 1 }]), homeController.createSimpleStepsVideo);
 
-// Get Simple Steps Section
-router.get('/simple-steps-section', homeController.getSimpleStepsSection);
+// Get all Simple Steps Videos
+router.get('/simple-steps-videos', homeController.getSimpleStepsVideos);
+
+// Get Simple Steps Video by ID
+router.get('/simple-steps-videos/:id', homeController.getSimpleStepsVideoById);
+
+// Update Simple Steps Video by ID
+router.put('/simple-steps-videos/:id', videoUpload.fields([{ name: 'video1', maxCount: 1 }, { name: 'video2', maxCount: 1 }]), homeController.updateSimpleStepsVideo);
+
+// Delete Simple Steps Video by ID
+router.delete('/simple-steps-videos/:id', homeController.deleteSimpleStepsVideo);
+
+// Simple Steps Section routes removed
 
 // ==================== FAQ ROUTES ====================
 
