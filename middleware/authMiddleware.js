@@ -3,8 +3,13 @@ const User = require('../models/User');
 const UserStatusService = require('../utils/userStatusService');
 const JWT_SECRET = process.env.JWT_SECRET || 'your_jwt_secret';
 
-module.exports = (roles = []) => {
+module.exports = (roles = [], isPublic = false) => {
   return async (req, res, next) => {
+    // If the route is public, bypass authentication
+    if (isPublic) {
+      return next();
+    }
+    
     const authHeader = req.headers.authorization;
     
     if (!authHeader || !authHeader.startsWith('Bearer ')) {

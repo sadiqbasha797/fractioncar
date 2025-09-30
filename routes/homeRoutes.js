@@ -17,7 +17,7 @@ router.get('/brands/public', homeController.getPublicBrands);
 router.get('/simple-steps/public', homeController.getPublicSimpleSteps);
 
 // Public routes for Absolutely Public Simple Steps Videos
-router.get('/simple-steps-videos/absolutely-public', homeController.getAbsolutelyPublicSimpleStepsVideos);
+router.get('/simple-steps-videos/absolutely-public', authMiddleware([], true), homeController.getAbsolutelyPublicSimpleStepsVideos);
 
 // Public routes for Simple Steps Section - removed
 
