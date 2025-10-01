@@ -30,7 +30,7 @@ router.get('/featured-cars/public', homeController.getPublicFeaturedCars);
 // ==================== PROTECTED ROUTES (Admin/SuperAdmin) ====================
 
 // All routes below this line require admin or superadmin authentication
-// router.use(authMiddleware(['admin', 'superadmin']));
+router.use(authMiddleware(['admin', 'superadmin']));
 
 // ==================== HERO CONTENT ROUTES ====================
 

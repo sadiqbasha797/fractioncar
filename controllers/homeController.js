@@ -498,34 +498,42 @@ const createSimpleStepsVideo = async (req, res) => {
     let video2 = req.body.video2 || '';
 
     // Handle uploaded files (if any). Expect fields: video1, video2
-    if (req.files && Array.isArray(req.files.video1) && req.files.video1[0]) {
-      try {
-        const result1 = await cloudinary.uploader.upload(req.files.video1[0].path, { resource_type: 'video' });
-        video1 = result1.secure_url;
-        fs.unlinkSync(req.files.video1[0].path);
-      } catch (uploadErr1) {
-        logger(`Error uploading video1: ${uploadErr1.message}`);
-        return res.status(500).json({ status: 'failed', body: {}, message: 'Error uploading video1' });
+    if (req.files && req.files.video1) {
+      const video1File = Array.isArray(req.files.video1) ? req.files.video1[0] : req.files.video1;
+      if (video1File) {
+        try {
+          const result1 = await cloudinary.uploader.upload(video1File.path, { resource_type: 'video' });
+          video1 = result1.secure_url;
+          fs.unlinkSync(video1File.path);
+        } catch (uploadErr1) {
+          logger(`Error uploading video1: ${uploadErr1.message}`);
+          return res.status(500).json({ status: 'failed', body: {}, message: 'Error uploading video1' });
+        }
       }
     }
 
-    if (req.files && Array.isArray(req.files.video2) && req.files.video2[0]) {
-      try {
-        const result2 = await cloudinary.uploader.upload(req.files.video2[0].path, { resource_type: 'video' });
-        video2 = result2.secure_url;
-        fs.unlinkSync(req.files.video2[0].path);
-      } catch (uploadErr2) {
-        logger(`Error uploading video2: ${uploadErr2.message}`);
-        return res.status(500).json({ status: 'failed', body: {}, message: 'Error uploading video2' });
+    if (req.files && req.files.video2) {
+      const video2File = Array.isArray(req.files.video2) ? req.files.video2[0] : req.files.video2;
+      if (video2File) {
+        try {
+          const result2 = await cloudinary.uploader.upload(video2File.path, { resource_type: 'video' });
+          video2 = result2.secure_url;
+          fs.unlinkSync(video2File.path);
+        } catch (uploadErr2) {
+          logger(`Error uploading video2: ${uploadErr2.message}`);
+          return res.status(500).json({ status: 'failed', body: {}, message: 'Error uploading video2' });
+        }
       }
     }
-
+    
     const simpleStepsVideo = new SimpleStepsVideo({ 
       video1,
       video2,
-      createdBy: req.user.id 
+      createdBy: req.user ? req.user.id : null 
     });
+    
     await simpleStepsVideo.save();
+    
     res.status(201).json({
       status: 'success',
       body: { simpleStepsVideo },
@@ -598,25 +606,31 @@ const updateSimpleStepsVideo = async (req, res) => {
     let video1 = typeof req.body.video1 === 'string' ? req.body.video1 : existing.video1;
     let video2 = typeof req.body.video2 === 'string' ? req.body.video2 : existing.video2;
 
-    if (req.files && Array.isArray(req.files.video1) && req.files.video1[0]) {
-      try {
-        const result1 = await cloudinary.uploader.upload(req.files.video1[0].path, { resource_type: 'video' });
-        video1 = result1.secure_url;
-        fs.unlinkSync(req.files.video1[0].path);
-      } catch (uploadErr1) {
-        logger(`Error uploading video1: ${uploadErr1.message}`);
-        return res.status(500).json({ status: 'failed', body: {}, message: 'Error uploading video1' });
+    if (req.files && req.files.video1) {
+      const video1File = Array.isArray(req.files.video1) ? req.files.video1[0] : req.files.video1;
+      if (video1File) {
+        try {
+          const result1 = await cloudinary.uploader.upload(video1File.path, { resource_type: 'video' });
+          video1 = result1.secure_url;
+          fs.unlinkSync(video1File.path);
+        } catch (uploadErr1) {
+          logger(`Error uploading video1: ${uploadErr1.message}`);
+          return res.status(500).json({ status: 'failed', body: {}, message: 'Error uploading video1' });
+        }
       }
     }
 
-    if (req.files && Array.isArray(req.files.video2) && req.files.video2[0]) {
-      try {
-        const result2 = await cloudinary.uploader.upload(req.files.video2[0].path, { resource_type: 'video' });
-        video2 = result2.secure_url;
-        fs.unlinkSync(req.files.video2[0].path);
-      } catch (uploadErr2) {
-        logger(`Error uploading video2: ${uploadErr2.message}`);
-        return res.status(500).json({ status: 'failed', body: {}, message: 'Error uploading video2' });
+    if (req.files && req.files.video2) {
+      const video2File = Array.isArray(req.files.video2) ? req.files.video2[0] : req.files.video2;
+      if (video2File) {
+        try {
+          const result2 = await cloudinary.uploader.upload(video2File.path, { resource_type: 'video' });
+          video2 = result2.secure_url;
+          fs.unlinkSync(video2File.path);
+        } catch (uploadErr2) {
+          logger(`Error uploading video2: ${uploadErr2.message}`);
+          return res.status(500).json({ status: 'failed', body: {}, message: 'Error uploading video2' });
+        }
       }
     }
 
