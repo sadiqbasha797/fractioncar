@@ -151,9 +151,9 @@ const getAllPayments = async (req, res) => {
       method 
     } = req.query;
 
-    const Token = require('../models/Token');
-    const BookNowToken = require('../models/BookNowToken');
-    const AMC = require('../models/AMC');
+    const Token = require('../models/token');
+    const BookNowToken = require('../models/bookNowToken');
+    const AMC = require('../models/amc');
 
     // Build query filters
     let query = {};
@@ -353,9 +353,9 @@ const getPaymentStats = async (req, res) => {
 // Find transaction by payment ID
 const findTransactionByPaymentId = async (paymentId) => {
   try {
-    const Token = require('../models/Token');
-    const BookNowToken = require('../models/BookNowToken');
-    const AMC = require('../models/AMC');
+    const Token = require('../models/token');
+    const BookNowToken = require('../models/bookNowToken');
+    const AMC = require('../models/amc');
 
     // Search in Token model
     let token = await Token.findOne({ razorpayPaymentId: paymentId });
@@ -419,9 +419,9 @@ const initiateRefund = async (req, res) => {
       console.log('Searching in all models...');
       
       // Debug: Check what tokens exist
-      const Token = require('../models/Token');
-      const BookNowToken = require('../models/BookNowToken');
-      const AMC = require('../models/AMC');
+      const Token = require('../models/token');
+      const BookNowToken = require('../models/bookNowToken');
+      const AMC = require('../models/amc');
       
       const allTokens = await Token.find({}).limit(5).select('razorpayPaymentId customtokenid');
       const allBookNowTokens = await BookNowToken.find({}).limit(5).select('razorpayPaymentId customtokenid');
