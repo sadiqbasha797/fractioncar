@@ -24,7 +24,7 @@ const getDashboardStats = async (req, res) => {
       totalUsers, verifiedUsers, kycApprovedUsers, usersThisMonth,
       totalBookings, activeBookings, completedBookings, bookingsThisMonth, bookingsThisWeek,
       totalAmcs, activeAmcs, expiredAmcs, amcsThisMonth,
-      totalTickets, openTickets, closedTickets, ticketsThisWeek,
+      totalTickets, activeTickets, expiredTickets, ticketsThisWeek,
       totalTokens, tokensThisMonth,
       totalBookNowTokens, bookNowTokensThisMonth,
       totalContracts, activeContracts, contractsThisMonth,
@@ -52,8 +52,8 @@ const getDashboardStats = async (req, res) => {
       AMC.countDocuments({ createdAt: { $gte: startOfMonth } }),
       
       Ticket.countDocuments(),
-      Ticket.countDocuments({ status: 'open' }),
-      Ticket.countDocuments({ status: 'closed' }),
+      Ticket.countDocuments({ ticketstatus: 'active' }),
+      Ticket.countDocuments({ ticketstatus: { $in: ['expired', 'cancelled'] } }),
       Ticket.countDocuments({ createdAt: { $gte: startOfWeek } }),
       
       Token.countDocuments(),
@@ -108,6 +108,19 @@ const getDashboardStats = async (req, res) => {
         .limit(5)
     ]);
 
+    // Transform tickets to shares format for frontend compatibility
+    const recentShares = recentTickets.map(ticket => ({
+      _id: ticket._id,
+      userid: ticket.userid,
+      sharecustomid: ticket.ticketcustomid,
+      shareprice: ticket.ticketprice,
+      pricepaid: ticket.pricepaid,
+      pendingamount: ticket.pendingamount,
+      sharestatus: ticket.ticketstatus,
+      comments: ticket.comments,
+      createdAt: ticket.createdAt || ticket.createdate
+    }));
+
 
     res.json({
       success: true,
@@ -131,9 +144,14 @@ const getDashboardStats = async (req, res) => {
           expiredAmcs,
           amcsThisMonth,
           totalTickets,
-          openTickets,
-          closedTickets,
+          activeTickets,
+          expiredTickets,
           ticketsThisWeek,
+          // Map tickets to shares (they are the same concept)
+          totalShares: totalTickets,
+          activeShares: activeTickets,
+          expiredShares: expiredTickets,
+          sharesThisWeek: ticketsThisWeek,
           totalTokens,
           tokensThisMonth,
           totalBookNowTokens,
@@ -149,6 +167,7 @@ const getDashboardStats = async (req, res) => {
           total: totalRevenue,
           breakdown: {
             tickets: ticketRevenue[0]?.total || 0,
+            shares: ticketRevenue[0]?.total || 0, // Map tickets to shares
             amc: amcRevenue[0]?.total || 0,
             tokens: tokenRevenue[0]?.total || 0,
             bookNowTokens: bookNowTokenRevenue[0]?.total || 0
@@ -160,7 +179,8 @@ const getDashboardStats = async (req, res) => {
         },
         recentActivity: {
           bookings: recentBookings,
-          tickets: recentTickets
+          tickets: recentTickets,
+          shares: recentShares // Use transformed shares data
         }
       }
     });
