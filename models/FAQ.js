@@ -2,14 +2,16 @@ const mongoose = require('mongoose');
 
 const faqSchema = new mongoose.Schema({
     question: {
-        type: String
+        type: String,
+        required: true
     },
     category: {
         type: String,
-        enum: ['Understanding', 'Pricing', 'Car Delivery', 'Car Usage Policy']
+        required: true
     },
     answer: {
-        type: String
+        type: String,
+        required: true
     },
     createdAt: {
         type: Date,
