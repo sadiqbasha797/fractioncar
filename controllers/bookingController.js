@@ -1,6 +1,7 @@
 const Booking = require('../models/booking');
 const User = require('../models/User');
 const Car = require('../models/Car');
+const BlockedDate = require('../models/BlockedDate');
 const logger = require('../utils/logger');
 const { 
   sendBookingConfirmationEmail, 
@@ -41,6 +42,27 @@ const createBooking = async (req, res) => {
         status: 'failed',
         body: {},
         message: 'No vacancy available on the selected dates. Please choose different dates.'
+      });
+    }
+
+    // Check for blocked dates
+    const blockedDates = await BlockedDate.find({
+      carid: carid,
+      isActive: true,
+      $or: [
+        {
+          blockedFrom: { $lte: new Date(bookingTo) },
+          blockedTo: { $gte: new Date(bookingFrom) }
+        }
+      ]
+    });
+
+    // If there are blocked dates, return error
+    if (blockedDates.length > 0) {
+      return res.status(400).json({
+        status: 'failed',
+        body: {},
+        message: 'Bookings are not available on the selected dates due to maintenance or other restrictions.'
       });
     }
 
@@ -212,6 +234,26 @@ const updateBooking = async (req, res) => {
           status: 'failed',
           body: {},
           message: 'No vacancy available on the selected dates. Please choose different dates.'
+        });
+      }
+
+      // Check for blocked dates
+      const blockedDates = await BlockedDate.find({
+        carid: carid,
+        isActive: true,
+        $or: [
+          {
+            blockedFrom: { $lte: new Date(bookingTo) },
+            blockedTo: { $gte: new Date(bookingFrom) }
+          }
+        ]
+      });
+
+      if (blockedDates.length > 0) {
+        return res.status(400).json({
+          status: 'failed',
+          body: {},
+          message: 'Bookings are not available on the selected dates due to maintenance or other restrictions.'
         });
       }
     }
@@ -391,16 +433,29 @@ const checkBookingAvailability = async (req, res) => {
         }
       ]
     });
+
+    // Check for blocked dates
+    const blockedDates = await BlockedDate.find({
+      carid: carId,
+      isActive: true,
+      $or: [
+        {
+          blockedFrom: { $lte: new Date(bookingTo) },
+          blockedTo: { $gte: new Date(bookingFrom) }
+        }
+      ]
+    });
     
-    const isAvailable = overlappingBookings.length === 0;
+    const isAvailable = overlappingBookings.length === 0 && blockedDates.length === 0;
     
     res.json({
       status: 'success',
       body: { 
         isAvailable,
-        conflictingBookings: overlappingBookings
+        conflictingBookings: overlappingBookings,
+        conflictingBlockedDates: blockedDates
       },
-      message: isAvailable ? 'Date range is available' : 'Date range conflicts with existing bookings'
+      message: isAvailable ? 'Date range is available' : 'Date range conflicts with existing bookings or blocked dates'
     });
   } catch (error) {
     logger(`Error in checkBookingAvailability: ${error.message}`);

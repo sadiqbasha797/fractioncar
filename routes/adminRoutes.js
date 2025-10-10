@@ -9,6 +9,7 @@ router.use(authMiddleware(['superadmin']));
 // Admin CRUD routes
 router.get('/', adminController.getAllAdmins);
 router.get('/:id', adminController.getAdminById);
+router.get('/:adminId/activities', adminController.getAdminActivities);
 router.post('/', adminController.createAdmin);
 router.put('/:id', adminController.updateAdmin);
 router.delete('/:id', adminController.deleteAdmin);

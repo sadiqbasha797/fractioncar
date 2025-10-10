@@ -6,7 +6,8 @@ const {
   getContactFormById,
   updateContactFormStatus,
   deleteContactForm,
-  getContactFormStats
+  getContactFormStats,
+  sendReply
 } = require('../controllers/contactController');
 const authMiddleware = require('../middleware/authMiddleware');
 
@@ -18,6 +19,7 @@ router.get('/admin/all', authMiddleware(['admin', 'superadmin']), getAllContactF
 router.get('/admin/stats', authMiddleware(['admin', 'superadmin']), getContactFormStats);
 router.get('/admin/:id', authMiddleware(['admin', 'superadmin']), getContactFormById);
 router.put('/admin/:id/status', authMiddleware(['admin', 'superadmin']), updateContactFormStatus);
+router.post('/admin/:id/reply', authMiddleware(['admin', 'superadmin']), sendReply);
 router.delete('/admin/:id', authMiddleware(['admin', 'superadmin']), deleteContactForm);
 
 module.exports = router;

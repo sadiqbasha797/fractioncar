@@ -18,4 +18,13 @@ router.put('/:id', authMiddleware(['user', 'admin', 'superadmin']), tokenControl
 // Delete token (Admin/SuperAdmin only)
 router.delete('/:id', authMiddleware(['admin', 'superadmin']), tokenController.deleteToken);
 
+// Request token cancellation (User can request cancellation for their own tokens)
+router.post('/:id/cancel', authMiddleware(['user', 'admin', 'superadmin']), tokenController.requestTokenCancellation);
+
+// Approve token refund request (Admin/SuperAdmin only)
+router.post('/:id/approve-refund', authMiddleware(['admin', 'superadmin']), tokenController.approveTokenRefund);
+
+// Reject token refund request (Admin/SuperAdmin only)
+router.post('/:id/reject-refund', authMiddleware(['admin', 'superadmin']), tokenController.rejectTokenRefund);
+
 module.exports = router;

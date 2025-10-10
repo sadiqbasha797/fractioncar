@@ -12,6 +12,7 @@ const {
   getNotificationById,
   updateNotification,
   adminDeleteNotification,
+  sendBulkNotifications,
   sendTestNotification
 } = require('../controllers/notificationController');
 const authMiddleware = require('../middleware/authMiddleware');
@@ -38,6 +39,9 @@ router.get('/stats', authMiddleware(['admin', 'superadmin']), getNotificationSta
 
 // Create manual notification (Admin/SuperAdmin only)
 router.post('/admin/create', authMiddleware(['admin', 'superadmin']), createNotification);
+
+// Send bulk notifications to specific users (Admin/SuperAdmin only)
+router.post('/admin/bulk', authMiddleware(['admin', 'superadmin']), sendBulkNotifications);
 
 // Get all notifications (Admin/SuperAdmin only)
 router.get('/admin/all', authMiddleware(['admin', 'superadmin']), getAllNotifications);

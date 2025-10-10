@@ -14,7 +14,8 @@ const {
   getUserRefunds,
   cancelRefund,
   processRefundWebhook,
-  refundPayment
+  refundPayment,
+  processTokenRefund
 } = require('../controllers/paymentController');
 
 // Create Razorpay order
@@ -45,5 +46,8 @@ router.post('/refund/webhook', processRefundWebhook); // Webhook doesn't need au
 
 // Legacy refund endpoint
 router.post('/refund', refundPayment);
+
+// Process token refund (Admin/SuperAdmin only)
+router.post('/refund/:tokenType/:tokenId', authMiddleware(['admin', 'superadmin']), processTokenRefund);
 
 module.exports = router;

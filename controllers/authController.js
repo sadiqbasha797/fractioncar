@@ -17,7 +17,7 @@ const generateVerificationCode = () => {
 // Register User
 const registerUser = async (req, res) => {
   try {
-    const { name, email, password, phone, dateofbirth, address } = req.body;
+    const { name, email, password, mobile, location, pincode, dateofbirth, address } = req.body;
 
     // Check if user already exists
     const existingUser = await User.findOne({ email });
@@ -42,7 +42,9 @@ const registerUser = async (req, res) => {
       name,
       email,
       password: hashedPassword,
-      phone,
+      phone: mobile, // Map mobile to phone field
+      location,
+      pincode,
       dateofbirth,
       address,
       logintoken: verificationCode,
@@ -66,6 +68,8 @@ const registerUser = async (req, res) => {
           name: user.name,
           email: user.email,
           phone: user.phone,
+          location: user.location,
+          pincode: user.pincode,
           dateofbirth: user.dateofbirth,
           address: user.address,
           verified: user.verified,

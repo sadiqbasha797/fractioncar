@@ -563,6 +563,100 @@ const adminDeleteNotification = async (req, res) => {
   }
 };
 
+// Send notifications to specific users (bulk selection)
+const sendBulkNotifications = async (req, res) => {
+  try {
+    const {
+      userIds,
+      title,
+      message,
+      type,
+      priority = 'medium',
+      metadata = {},
+      expiresAt
+    } = req.body;
+
+    const userRole = req.user.role;
+    if (userRole !== 'admin' && userRole !== 'superadmin') {
+      return res.status(403).json({
+        status: 'failed',
+        body: {},
+        message: 'Access denied. Admin or SuperAdmin role required.'
+      });
+    }
+
+    // Validate required fields
+    if (!userIds || !Array.isArray(userIds) || userIds.length === 0) {
+      return res.status(400).json({
+        status: 'failed',
+        body: {},
+        message: 'User IDs array is required and must not be empty'
+      });
+    }
+
+    if (!title || !message || !type) {
+      return res.status(400).json({
+        status: 'failed',
+        body: {},
+        message: 'Title, message, and type are required'
+      });
+    }
+
+    // Validate that all users exist
+    const users = await User.find({ _id: { $in: userIds } });
+    if (users.length !== userIds.length) {
+      return res.status(400).json({
+        status: 'failed',
+        body: {},
+        message: 'One or more user IDs are invalid'
+      });
+    }
+
+    // Create notifications for each user
+    const notifications = [];
+    for (const userId of userIds) {
+      const notification = new Notification({
+        recipientId: userId,
+        recipientModel: 'User',
+        title,
+        message,
+        type,
+        priority,
+        metadata: {
+          ...metadata,
+          sentBy: req.user.id,
+          sentByRole: userRole,
+          bulkNotification: true
+        },
+        expiresAt: expiresAt ? new Date(expiresAt) : undefined
+      });
+      notifications.push(notification);
+    }
+
+    await Notification.insertMany(notifications);
+
+    logger(`Bulk notification sent by ${userRole} ${req.user.id}: ${type} to ${userIds.length} users`);
+
+    res.status(201).json({
+      status: 'success',
+      body: {
+        notificationsSent: notifications.length,
+        userIds,
+        type,
+        priority
+      },
+      message: `Notification sent successfully to ${notifications.length} user(s)`
+    });
+  } catch (error) {
+    logger(`Error in sendBulkNotifications: ${error.message}`);
+    res.status(500).json({
+      status: 'failed',
+      body: {},
+      message: 'Internal server error'
+    });
+  }
+};
+
 // Send test notification (SuperAdmin only)
 const sendTestNotification = async (req, res) => {
   try {
@@ -622,5 +716,6 @@ module.exports = {
   getNotificationById,
   updateNotification,
   adminDeleteNotification,
+  sendBulkNotifications,
   sendTestNotification
 };

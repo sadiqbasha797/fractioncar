@@ -30,7 +30,7 @@ const tokenSchema = new mongoose.Schema({
     },
     status: {
         type: String,
-        enum: ['active', 'expired', 'dropped'],
+        enum: ['active', 'expired', 'dropped', 'refund_requested', 'refund_initiated', 'refund_processed'],
         default: 'active'
     },
     // Payment transaction details
@@ -48,21 +48,24 @@ const tokenSchema = new mongoose.Schema({
     },
     // Refund details
     refundDetails: {
-        refundId: String,
-        refundAmount: Number,
-        refundStatus: {
-            type: String,
-            enum: ['none', 'initiated', 'processed', 'successful', 'failed'],
-            default: 'none'
+        type: {
+            refundId: String,
+            refundAmount: Number,
+            refundStatus: {
+                type: String,
+                enum: ['none', 'initiated', 'processed', 'successful', 'failed'],
+                default: 'none'
+            },
+            refundInitiatedAt: Date,
+            refundProcessedAt: Date,
+            refundCompletedAt: Date,
+            refundReason: String,
+            refundedBy: {
+                type: mongoose.Schema.Types.ObjectId,
+                ref: 'SuperAdmin'
+            }
         },
-        refundInitiatedAt: Date,
-        refundProcessedAt: Date,
-        refundCompletedAt: Date,
-        refundReason: String,
-        refundedBy: {
-            type: mongoose.Schema.Types.ObjectId,
-            ref: 'SuperAdmin'
-        }
+        default: {}
     }
 }, {
     timestamps: true

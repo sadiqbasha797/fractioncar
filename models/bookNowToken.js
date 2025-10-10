@@ -30,7 +30,7 @@ const bookNowTokenSchema = new mongoose.Schema({
     },
     status: {
         type: String,
-        enum: ['active', 'expired', 'dropped'],
+        enum: ['active', 'expired', 'dropped', 'refund_requested', 'refund_initiated', 'refund_processed'],
         default: 'active'
     },
     // Payment transaction details

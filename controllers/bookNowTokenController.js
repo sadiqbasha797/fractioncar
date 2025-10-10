@@ -267,10 +267,247 @@ const deleteBookNowToken = async (req, res) => {
   }
 };
 
+// Request book now token cancellation (User can request cancellation for their own tokens)
+const requestBookNowTokenCancellation = async (req, res) => {
+  try {
+    const { reason } = req.body;
+    const tokenId = req.params.id;
+    
+    const bookNowToken = await BookNowToken.findById(tokenId).populate('userid carid');
+    if (!bookNowToken) {
+      return res.status(404).json({
+        status: 'failed',
+        body: {},
+        message: 'Book now token not found'
+      });
+    }
+    
+    // Check if user owns this token
+    if (req.user.role === 'user' && bookNowToken.userid._id.toString() !== req.user.id) {
+      return res.status(403).json({
+        status: 'failed',
+        body: {},
+        message: 'Not authorized to cancel this book now token'
+      });
+    }
+    
+    // Check if token can be cancelled
+    if (bookNowToken.status !== 'active') {
+      return res.status(400).json({
+        status: 'failed',
+        body: {},
+        message: 'Book now token cannot be cancelled. Only active tokens can be cancelled.'
+      });
+    }
+    
+    // Update token status to refund_requested
+    bookNowToken.status = 'refund_requested';
+    bookNowToken.refundDetails.refundReason = reason || 'User requested cancellation';
+    bookNowToken.refundDetails.refundStatus = 'none';
+    await bookNowToken.save();
+    
+    // Send notifications to admins and superadmins
+    try {
+      await NotificationService.createAdminNotification(
+        'booknow_token_refund_requested',
+        'Book Now Token Refund Requested',
+        `User ${bookNowToken.userid.name} (${bookNowToken.userid.email}) has requested cancellation for book now token ${bookNowToken.customtokenid}. Reason: ${reason || 'No reason provided'}`,
+        {
+          tokenId: bookNowToken._id,
+          userId: bookNowToken.userid._id,
+          userName: bookNowToken.userid.name,
+          userEmail: bookNowToken.userid.email,
+          tokenCustomId: bookNowToken.customtokenid,
+          amountPaid: bookNowToken.amountpaid,
+          reason: reason || 'No reason provided'
+        },
+        bookNowToken._id,
+        'BookNowToken'
+      );
+      
+      logger(`Book now token cancellation request created for token ${bookNowToken._id} by user ${req.user.id}`);
+    } catch (notificationError) {
+      logger(`Error creating notification for book now token cancellation: ${notificationError.message}`);
+    }
+    
+    res.json({
+      status: 'success',
+      body: { bookNowToken },
+      message: 'Book now token cancellation request submitted successfully'
+    });
+  } catch (error) {
+    logger(`Error in requestBookNowTokenCancellation: ${error.message}`);
+    res.status(500).json({
+      status: 'failed',
+      body: {},
+      message: 'Internal server error'
+    });
+  }
+};
+
+// Approve book now token refund request (Admin/SuperAdmin only)
+const approveBookNowTokenRefund = async (req, res) => {
+  try {
+    const tokenId = req.params.id;
+    
+    const bookNowToken = await BookNowToken.findById(tokenId).populate('userid carid');
+    if (!bookNowToken) {
+      return res.status(404).json({
+        status: 'failed',
+        body: {},
+        message: 'Book now token not found'
+      });
+    }
+    
+    // Only admin/superadmin can approve refunds
+    if (req.user.role !== 'admin' && req.user.role !== 'superadmin') {
+      return res.status(403).json({
+        status: 'failed',
+        body: {},
+        message: 'Not authorized to approve refunds'
+      });
+    }
+    
+    // Check if token is in refund_requested status
+    if (bookNowToken.status !== 'refund_requested') {
+      return res.status(400).json({
+        status: 'failed',
+        body: {},
+        message: 'Book now token is not in refund requested status'
+      });
+    }
+    
+    // Update token status to refund_initiated
+    bookNowToken.status = 'refund_initiated';
+    bookNowToken.refundDetails.refundStatus = 'initiated';
+    bookNowToken.refundDetails.refundInitiatedAt = new Date();
+    bookNowToken.refundDetails.refundedBy = req.user.id;
+    await bookNowToken.save();
+    
+    // Send notifications to admins and superadmins
+    try {
+      await NotificationService.createAdminNotification(
+        'booknow_token_refund_approved',
+        'Book Now Token Refund Approved',
+        `Book now token ${bookNowToken.customtokenid} refund has been approved by ${req.user.role}. Ready for refund processing.`,
+        {
+          tokenId: bookNowToken._id,
+          userId: bookNowToken.userid._id,
+          userName: bookNowToken.userid.name,
+          userEmail: bookNowToken.userid.email,
+          tokenCustomId: bookNowToken.customtokenid,
+          amountPaid: bookNowToken.amountpaid,
+          approvedBy: req.user.name || req.user.email
+        },
+        bookNowToken._id,
+        'BookNowToken'
+      );
+      
+      logger(`Book now token refund approved for token ${bookNowToken._id} by ${req.user.role} ${req.user.id}`);
+    } catch (notificationError) {
+      logger(`Error creating notification for book now token refund approval: ${notificationError.message}`);
+    }
+    
+    res.json({
+      status: 'success',
+      body: { bookNowToken },
+      message: 'Book now token refund approved successfully'
+    });
+  } catch (error) {
+    logger(`Error in approveBookNowTokenRefund: ${error.message}`);
+    res.status(500).json({
+      status: 'failed',
+      body: {},
+      message: 'Internal server error'
+    });
+  }
+};
+
+// Reject book now token refund request (Admin/SuperAdmin only)
+const rejectBookNowTokenRefund = async (req, res) => {
+  try {
+    const { reason } = req.body;
+    const tokenId = req.params.id;
+    
+    const bookNowToken = await BookNowToken.findById(tokenId).populate('userid carid');
+    if (!bookNowToken) {
+      return res.status(404).json({
+        status: 'failed',
+        body: {},
+        message: 'Book now token not found'
+      });
+    }
+    
+    // Only admin/superadmin can reject refunds
+    if (req.user.role !== 'admin' && req.user.role !== 'superadmin') {
+      return res.status(403).json({
+        status: 'failed',
+        body: {},
+        message: 'Not authorized to reject refunds'
+      });
+    }
+    
+    // Check if token is in refund_requested status
+    if (bookNowToken.status !== 'refund_requested') {
+      return res.status(400).json({
+        status: 'failed',
+        body: {},
+        message: 'Book now token is not in refund requested status'
+      });
+    }
+    
+    // Update token status back to active
+    bookNowToken.status = 'active';
+    bookNowToken.refundDetails.refundReason = reason || 'Refund request rejected';
+    await bookNowToken.save();
+    
+    // Send notifications to admins and superadmins
+    try {
+      await NotificationService.createAdminNotification(
+        'booknow_token_refund_rejected',
+        'Book Now Token Refund Rejected',
+        `Book now token ${bookNowToken.customtokenid} refund has been rejected by ${req.user.role}. Reason: ${reason || 'No reason provided'}`,
+        {
+          tokenId: bookNowToken._id,
+          userId: bookNowToken.userid._id,
+          userName: bookNowToken.userid.name,
+          userEmail: bookNowToken.userid.email,
+          tokenCustomId: bookNowToken.customtokenid,
+          amountPaid: bookNowToken.amountpaid,
+          rejectedBy: req.user.name || req.user.email,
+          rejectionReason: reason || 'No reason provided'
+        },
+        bookNowToken._id,
+        'BookNowToken'
+      );
+      
+      logger(`Book now token refund rejected for token ${bookNowToken._id} by ${req.user.role} ${req.user.id}`);
+    } catch (notificationError) {
+      logger(`Error creating notification for book now token refund rejection: ${notificationError.message}`);
+    }
+    
+    res.json({
+      status: 'success',
+      body: { bookNowToken },
+      message: 'Book now token refund rejected successfully'
+    });
+  } catch (error) {
+    logger(`Error in rejectBookNowTokenRefund: ${error.message}`);
+    res.status(500).json({
+      status: 'failed',
+      body: {},
+      message: 'Internal server error'
+    });
+  }
+};
+
 module.exports = {
   createBookNowToken,
   getBookNowTokens,
   getBookNowTokenById,
   updateBookNowToken,
-  deleteBookNowToken
+  deleteBookNowToken,
+  requestBookNowTokenCancellation,
+  approveBookNowTokenRefund,
+  rejectBookNowTokenRefund
 };

@@ -1,6 +1,10 @@
 const razorpay = require('../config/razorpay');
-const crypto = require('crypto');
 const RefundService = require('../utils/refundService');
+const crypto = require('crypto');
+const Token = require('../models/token');
+const BookNowToken = require('../models/bookNowToken');
+const NotificationService = require('../utils/notificationService');
+const logger = require('../utils/logger');
 
 // Create Razorpay order
 const createOrder = async (req, res) => {
@@ -139,7 +143,7 @@ const getOrderDetails = async (req, res) => {
   }
 };
 
-// Get all payments/transactions with pagination from database
+// Get all payments/transactions with pagination from Razorpay API
 const getAllPayments = async (req, res) => {
   try {
     const { 
@@ -151,124 +155,42 @@ const getAllPayments = async (req, res) => {
       method 
     } = req.query;
 
-    const Token = require('../models/token');
-    const BookNowToken = require('../models/bookNowToken');
-    const AMC = require('../models/amc');
+    // First, get all payments to determine total count
+    const allOptions = {
+      count: 100 // Get more records to ensure we have accurate count
+    };
 
-    // Build query filters
-    let query = {};
-    
     // Add date filters if provided
-    if (from || to) {
-      query.createdAt = {};
-      if (from) {
-        query.createdAt.$gte = new Date(from);
-      }
-      if (to) {
-        query.createdAt.$lte = new Date(to);
-      }
+    if (from) {
+      allOptions.from = Math.floor(new Date(from).getTime() / 1000);
+    }
+    if (to) {
+      allOptions.to = Math.floor(new Date(to).getTime() / 1000);
     }
 
-    // Add status filter if provided
+    // Get all payments from Razorpay API to determine total count
+    const allPayments = await razorpay.payments.all(allOptions);
+    
+    // Apply filters to get the actual filtered list
+    let filteredPayments = allPayments.items;
+
+    // Filter by status if provided
     if (status) {
-      query.status = status;
+      filteredPayments = filteredPayments.filter(payment => payment.status === status);
     }
 
-    // Add method filter if provided (this would need to be stored in your models)
+    // Filter by method if provided
     if (method) {
-      query.paymentMethod = method;
+      filteredPayments = filteredPayments.filter(payment => payment.method === method);
     }
 
-    // Get all payments from different models
-    const [tokens, bookNowTokens, amcs] = await Promise.all([
-      Token.find({ ...query, razorpayPaymentId: { $exists: true, $ne: null } })
-        .populate('userid', 'name email phone')
-        .populate('carid', 'carname brandname')
-        .sort({ createdAt: -1 }),
-      BookNowToken.find({ ...query, razorpayPaymentId: { $exists: true, $ne: null } })
-        .populate('userid', 'name email phone')
-        .populate('carid', 'carname brandname')
-        .sort({ createdAt: -1 }),
-      AMC.find({ ...query, 'amcamount.razorpayPaymentId': { $exists: true, $ne: null } })
-        .populate('userid', 'name email phone')
-        .populate('carid', 'carname brandname')
-        .sort({ createdAt: -1 })
-    ]);
-
-    // Transform data to match Razorpay format
-    const allPayments = [];
-
-    // Process tokens
-    tokens.forEach(token => {
-      allPayments.push({
-        id: token.razorpayPaymentId,
-        entity: 'payment',
-        amount: token.amountpaid * 100, // Convert to paise
-        currency: 'INR',
-        status: 'captured',
-        order_id: token.customtokenid,
-        method: 'upi', // Default method, you can store this in your model
-        email: token.userid?.email || 'user@example.com',
-        contact: token.userid?.phone || '+919999999999',
-        created_at: Math.floor(new Date(token.createdAt).getTime() / 1000),
-        description: `Token purchase for ${token.carid?.carname || 'Car'}`,
-        type: 'token',
-        transactionId: token._id
-      });
-    });
-
-    // Process book now tokens
-    bookNowTokens.forEach(bookNowToken => {
-      allPayments.push({
-        id: bookNowToken.razorpayPaymentId,
-        entity: 'payment',
-        amount: bookNowToken.amountpaid * 100, // Convert to paise
-        currency: 'INR',
-        status: 'captured',
-        order_id: bookNowToken.customtokenid,
-        method: 'upi', // Default method
-        email: bookNowToken.userid?.email || 'user@example.com',
-        contact: bookNowToken.userid?.phone || '+919999999999',
-        created_at: Math.floor(new Date(bookNowToken.createdAt).getTime() / 1000),
-        description: `Book now token purchase for ${bookNowToken.carid?.carname || 'Car'}`,
-        type: 'booknowtoken',
-        transactionId: bookNowToken._id
-      });
-    });
-
-    // Process AMC payments
-    amcs.forEach(amc => {
-      if (amc.amcamount && amc.amcamount.razorpayPaymentId) {
-        allPayments.push({
-          id: amc.amcamount.razorpayPaymentId,
-          entity: 'payment',
-          amount: amc.amcamount.amount * 100, // Convert to paise
-          currency: 'INR',
-          status: 'captured',
-          order_id: amc.amcamount.orderId || `amc_${amc._id}`,
-          method: 'upi', // Default method
-          email: amc.userid?.email || 'user@example.com',
-          contact: amc.userid?.phone || '+919999999999',
-          created_at: Math.floor(new Date(amc.createdAt).getTime() / 1000),
-          description: `AMC payment for ${amc.carid?.carname || 'Car'}`,
-          type: 'amc',
-          transactionId: amc._id
-        });
-      }
-    });
-
-    // Sort by creation date (newest first)
-    allPayments.sort((a, b) => b.created_at - a.created_at);
-
-    // Apply pagination
-    const totalCount = allPayments.length;
+    // Now apply pagination to the filtered results
+    const totalCount = filteredPayments.length;
     const startIndex = parseInt(skip);
     const endIndex = startIndex + parseInt(count);
-    const paginatedPayments = allPayments.slice(startIndex, endIndex);
+    const paginatedPayments = filteredPayments.slice(startIndex, endIndex);
 
     // Calculate pagination info
-    const totalPages = Math.ceil(totalCount / parseInt(count));
-    const currentPage = Math.floor(parseInt(skip) / parseInt(count)) + 1;
     const hasMore = endIndex < totalCount;
 
     res.status(200).json({
@@ -280,8 +202,8 @@ const getAllPayments = async (req, res) => {
         has_more: hasMore,
         total_count: totalCount,
         pagination: {
-          currentPage,
-          totalPages,
+          currentPage: Math.floor(parseInt(skip) / parseInt(count)) + 1,
+          totalPages: Math.ceil(totalCount / parseInt(count)),
           totalItems: totalCount,
           itemsPerPage: parseInt(count)
         }
@@ -304,7 +226,7 @@ const getPaymentStats = async (req, res) => {
     
     // Get payments for the specified period
     const options = {
-      count: 100
+      count: 100 // Get more records to ensure we have accurate stats
     };
 
     if (from) {
@@ -316,9 +238,9 @@ const getPaymentStats = async (req, res) => {
 
     const payments = await razorpay.payments.all(options);
     
-    // Calculate statistics
+    // Calculate statistics based on actual items returned
     const stats = {
-      total_payments: payments.items.length,
+      total_payments: payments.items.length, // Use actual count of items returned
       successful_payments: payments.items.filter(p => p.status === 'captured').length,
       failed_payments: payments.items.filter(p => p.status === 'failed').length,
       pending_payments: payments.items.filter(p => p.status === 'created' || p.status === 'authorized').length,
@@ -416,23 +338,23 @@ const initiateRefund = async (req, res) => {
     
     if (!transaction) {
       console.log('No transaction found for payment ID:', paymentId);
-      console.log('Searching in all models...');
+      console.log('This could be due to deleted records. Proceeding with refund using payment details from Razorpay...');
       
-      // Debug: Check what tokens exist
-      const Token = require('../models/token');
-      const BookNowToken = require('../models/bookNowToken');
-      const AMC = require('../models/amc');
-      
-      const allTokens = await Token.find({}).limit(5).select('razorpayPaymentId customtokenid');
-      const allBookNowTokens = await BookNowToken.find({}).limit(5).select('razorpayPaymentId customtokenid');
-      
-      console.log('Sample tokens with payment IDs:', allTokens);
-      console.log('Sample book now tokens with payment IDs:', allBookNowTokens);
-      
-      return res.status(404).json({
-        success: false,
-        message: 'Transaction not found for this payment ID'
+      // If no local transaction found, we can still process refund using Razorpay payment details
+      // This handles cases where database records were deleted but payment exists in Razorpay
+      const result = await RefundService.initiateRefundWithoutTransaction(
+        paymentId,
+        refundAmount,
+        reason,
+        refundedBy
+      );
+
+      res.status(200).json({
+        success: true,
+        message: 'Refund initiated successfully (no local transaction record found)',
+        data: result
       });
+      return;
     }
 
     console.log('Found transaction:', transaction);
@@ -618,6 +540,131 @@ const refundPayment = async (req, res) => {
   }
 };
 
+// Process token refund (Admin/SuperAdmin only)
+const processTokenRefund = async (req, res) => {
+  try {
+    const { tokenId, tokenType } = req.params; // tokenType: 'token' or 'booknow-token'
+    const { paymentId, refundAmount, reason } = req.body;
+    
+    // Only admin/superadmin can process refunds
+    if (req.user.role !== 'admin' && req.user.role !== 'superadmin') {
+      return res.status(403).json({
+        success: false,
+        message: 'Not authorized to process refunds'
+      });
+    }
+    
+    let token;
+    if (tokenType === 'token') {
+      token = await Token.findById(tokenId).populate('userid carid');
+    } else if (tokenType === 'booknow-token') {
+      token = await BookNowToken.findById(tokenId).populate('userid carid');
+    } else {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid token type'
+      });
+    }
+    
+    if (!token) {
+      return res.status(404).json({
+        success: false,
+        message: 'Token not found'
+      });
+    }
+    
+    // Check if token is in refund_initiated status
+    if (token.status !== 'refund_initiated') {
+      return res.status(400).json({
+        success: false,
+        message: 'Token is not in refund initiated status'
+      });
+    }
+    
+    // Use RefundService to process the refund
+    const paymentIdToUse = paymentId || token.razorpayPaymentId;
+    
+    if (!paymentIdToUse) {
+      return res.status(400).json({
+        success: false,
+        message: 'Payment ID is required for refund processing'
+      });
+    }
+    
+    let refund;
+    try {
+      const refundResult = await RefundService.initiateRefund(
+        paymentIdToUse,
+        refundAmount ? refundAmount * 100 : null, // Convert to paise, null for full refund
+        reason || 'Token refund',
+        req.user.id.toString(),
+        tokenType || 'token',
+        token._id.toString()
+      );
+      
+      refund = refundResult.razorpayRefund;
+    } catch (refundError) {
+      console.error('RefundService error:', refundError);
+      return res.status(400).json({
+        success: false,
+        message: 'Failed to process refund',
+        error: refundError.message || 'Refund processing failed'
+      });
+    }
+    
+    // Update token status to refund_processed
+    token.status = 'refund_processed';
+    await token.save();
+    
+    // Send notifications to admins and superadmins
+    try {
+      const notificationType = tokenType === 'token' ? 'token_refund_processed' : 'booknow_token_refund_processed';
+      const tokenName = tokenType === 'token' ? 'Token' : 'Book now token';
+      
+      await NotificationService.createAdminNotification(
+        notificationType,
+        `${tokenName} Refund Processed`,
+        `${tokenName} ${token.customtokenid} refund has been processed successfully. Amount: ₹${refund.amount / 100}`,
+        {
+          tokenId: token._id,
+          userId: token.userid._id,
+          userName: token.userid.name,
+          userEmail: token.userid.email,
+          tokenCustomId: token.customtokenid,
+          refundAmount: refund.amount / 100,
+          refundId: refund.id,
+          processedBy: req.user.name || req.user.email
+        },
+        token._id,
+        tokenType === 'token' ? 'Token' : 'BookNowToken'
+      );
+      
+      logger(`${tokenName} refund processed for token ${token._id} by ${req.user.role} ${req.user.id}`);
+    } catch (notificationError) {
+      logger(`Error creating notification for ${tokenType} refund processing: ${notificationError.message}`);
+    }
+    
+    res.status(200).json({
+      success: true,
+      message: 'Token refund processed successfully',
+      refund: {
+        id: refund.id,
+        amount: refund.amount / 100,
+        status: refund.status,
+        tokenId: token._id,
+        tokenStatus: token.status
+      }
+    });
+  } catch (error) {
+    logger(`Error in processTokenRefund: ${error.message}`);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to process token refund',
+      error: error.message
+    });
+  }
+};
+
 module.exports = {
   createOrder,
   verifyPayment,
@@ -631,5 +678,6 @@ module.exports = {
   getUserRefunds,
   cancelRefund,
   processRefundWebhook,
-  refundPayment
+  refundPayment,
+  processTokenRefund
 };

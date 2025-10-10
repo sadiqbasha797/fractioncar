@@ -338,10 +338,247 @@ const deleteToken = async (req, res) => {
   }
 };
 
+// Request token cancellation (User can request cancellation for their own tokens)
+const requestTokenCancellation = async (req, res) => {
+  try {
+    const { reason } = req.body;
+    const tokenId = req.params.id;
+    
+    const token = await Token.findById(tokenId).populate('userid carid');
+    if (!token) {
+      return res.status(404).json({
+        status: 'failed',
+        body: {},
+        message: 'Token not found'
+      });
+    }
+    
+    // Check if user owns this token
+    if (req.user.role === 'user' && token.userid._id.toString() !== req.user.id) {
+      return res.status(403).json({
+        status: 'failed',
+        body: {},
+        message: 'Not authorized to cancel this token'
+      });
+    }
+    
+    // Check if token can be cancelled
+    if (token.status !== 'active') {
+      return res.status(400).json({
+        status: 'failed',
+        body: {},
+        message: 'Token cannot be cancelled. Only active tokens can be cancelled.'
+      });
+    }
+    
+    // Update token status to refund_requested
+    token.status = 'refund_requested';
+    token.refundDetails.refundReason = reason || 'User requested cancellation';
+    token.refundDetails.refundStatus = 'none';
+    await token.save();
+    
+    // Send notifications to admins and superadmins
+    try {
+      await NotificationService.createAdminNotification(
+        'token_refund_requested',
+        'Token Refund Requested',
+        `User ${token.userid.name} (${token.userid.email}) has requested cancellation for token ${token.customtokenid}. Reason: ${reason || 'No reason provided'}`,
+        {
+          tokenId: token._id,
+          userId: token.userid._id,
+          userName: token.userid.name,
+          userEmail: token.userid.email,
+          tokenCustomId: token.customtokenid,
+          amountPaid: token.amountpaid,
+          reason: reason || 'No reason provided'
+        },
+        token._id,
+        'Token'
+      );
+      
+      logger(`Token cancellation request created for token ${token._id} by user ${req.user.id}`);
+    } catch (notificationError) {
+      logger(`Error creating notification for token cancellation: ${notificationError.message}`);
+    }
+    
+    res.json({
+      status: 'success',
+      body: { token },
+      message: 'Token cancellation request submitted successfully'
+    });
+  } catch (error) {
+    logger(`Error in requestTokenCancellation: ${error.message}`);
+    res.status(500).json({
+      status: 'failed',
+      body: {},
+      message: 'Internal server error'
+    });
+  }
+};
+
+// Approve token refund request (Admin/SuperAdmin only)
+const approveTokenRefund = async (req, res) => {
+  try {
+    const tokenId = req.params.id;
+    
+    const token = await Token.findById(tokenId).populate('userid carid');
+    if (!token) {
+      return res.status(404).json({
+        status: 'failed',
+        body: {},
+        message: 'Token not found'
+      });
+    }
+    
+    // Only admin/superadmin can approve refunds
+    if (req.user.role !== 'admin' && req.user.role !== 'superadmin') {
+      return res.status(403).json({
+        status: 'failed',
+        body: {},
+        message: 'Not authorized to approve refunds'
+      });
+    }
+    
+    // Check if token is in refund_requested status
+    if (token.status !== 'refund_requested') {
+      return res.status(400).json({
+        status: 'failed',
+        body: {},
+        message: 'Token is not in refund requested status'
+      });
+    }
+    
+    // Update token status to refund_initiated
+    token.status = 'refund_initiated';
+    token.refundDetails.refundStatus = 'initiated';
+    token.refundDetails.refundInitiatedAt = new Date();
+    token.refundDetails.refundedBy = req.user.id;
+    await token.save();
+    
+    // Send notifications to admins and superadmins
+    try {
+      await NotificationService.createAdminNotification(
+        'token_refund_approved',
+        'Token Refund Approved',
+        `Token ${token.customtokenid} refund has been approved by ${req.user.role}. Ready for refund processing.`,
+        {
+          tokenId: token._id,
+          userId: token.userid._id,
+          userName: token.userid.name,
+          userEmail: token.userid.email,
+          tokenCustomId: token.customtokenid,
+          amountPaid: token.amountpaid,
+          approvedBy: req.user.name || req.user.email
+        },
+        token._id,
+        'Token'
+      );
+      
+      logger(`Token refund approved for token ${token._id} by ${req.user.role} ${req.user.id}`);
+    } catch (notificationError) {
+      logger(`Error creating notification for token refund approval: ${notificationError.message}`);
+    }
+    
+    res.json({
+      status: 'success',
+      body: { token },
+      message: 'Token refund approved successfully'
+    });
+  } catch (error) {
+    logger(`Error in approveTokenRefund: ${error.message}`);
+    res.status(500).json({
+      status: 'failed',
+      body: {},
+      message: 'Internal server error'
+    });
+  }
+};
+
+// Reject token refund request (Admin/SuperAdmin only)
+const rejectTokenRefund = async (req, res) => {
+  try {
+    const { reason } = req.body;
+    const tokenId = req.params.id;
+    
+    const token = await Token.findById(tokenId).populate('userid carid');
+    if (!token) {
+      return res.status(404).json({
+        status: 'failed',
+        body: {},
+        message: 'Token not found'
+      });
+    }
+    
+    // Only admin/superadmin can reject refunds
+    if (req.user.role !== 'admin' && req.user.role !== 'superadmin') {
+      return res.status(403).json({
+        status: 'failed',
+        body: {},
+        message: 'Not authorized to reject refunds'
+      });
+    }
+    
+    // Check if token is in refund_requested status
+    if (token.status !== 'refund_requested') {
+      return res.status(400).json({
+        status: 'failed',
+        body: {},
+        message: 'Token is not in refund requested status'
+      });
+    }
+    
+    // Update token status back to active
+    token.status = 'active';
+    token.refundDetails.refundReason = reason || 'Refund request rejected';
+    await token.save();
+    
+    // Send notifications to admins and superadmins
+    try {
+      await NotificationService.createAdminNotification(
+        'token_refund_rejected',
+        'Token Refund Rejected',
+        `Token ${token.customtokenid} refund has been rejected by ${req.user.role}. Reason: ${reason || 'No reason provided'}`,
+        {
+          tokenId: token._id,
+          userId: token.userid._id,
+          userName: token.userid.name,
+          userEmail: token.userid.email,
+          tokenCustomId: token.customtokenid,
+          amountPaid: token.amountpaid,
+          rejectedBy: req.user.name || req.user.email,
+          rejectionReason: reason || 'No reason provided'
+        },
+        token._id,
+        'Token'
+      );
+      
+      logger(`Token refund rejected for token ${token._id} by ${req.user.role} ${req.user.id}`);
+    } catch (notificationError) {
+      logger(`Error creating notification for token refund rejection: ${notificationError.message}`);
+    }
+    
+    res.json({
+      status: 'success',
+      body: { token },
+      message: 'Token refund rejected successfully'
+    });
+  } catch (error) {
+    logger(`Error in rejectTokenRefund: ${error.message}`);
+    res.status(500).json({
+      status: 'failed',
+      body: {},
+      message: 'Internal server error'
+    });
+  }
+};
+
 module.exports = {
   createToken,
   getTokens,
   getTokenById,
   updateToken,
-  deleteToken
+  deleteToken,
+  requestTokenCancellation,
+  approveTokenRefund,
+  rejectTokenRefund
 };

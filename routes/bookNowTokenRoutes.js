@@ -18,4 +18,13 @@ router.put('/:id', authMiddleware(['admin', 'superadmin']), bookNowTokenControll
 // Delete book now token (Admin/SuperAdmin only)
 router.delete('/:id', authMiddleware(['admin', 'superadmin']), bookNowTokenController.deleteBookNowToken);
 
+// Request book now token cancellation (User can request cancellation for their own tokens)
+router.post('/:id/cancel', authMiddleware(['user', 'admin', 'superadmin']), bookNowTokenController.requestBookNowTokenCancellation);
+
+// Approve book now token refund request (Admin/SuperAdmin only)
+router.post('/:id/approve-refund', authMiddleware(['admin', 'superadmin']), bookNowTokenController.approveBookNowTokenRefund);
+
+// Reject book now token refund request (Admin/SuperAdmin only)
+router.post('/:id/reject-refund', authMiddleware(['admin', 'superadmin']), bookNowTokenController.rejectBookNowTokenRefund);
+
 module.exports = router;

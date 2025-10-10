@@ -13,6 +13,7 @@ app.use(cors({
     'http://localhost:4200', // Angular default port for development
     'http://localhost:59459', // Additional development port
     'https://fraction.projexino.com', // Production frontend URL
+    'https://www.fractioncar.com/', // Production frontend URL
     'https://fractionadmin.projexino.com', // Production frontend URL
     'https://fraction2.projexino.com', // Production frontend URL
     'https://fractionbackend.projexino.com' // Production backend URL (for self-referencing)
@@ -64,6 +65,10 @@ app.use('/api/amcs', amcRoutes);
 const bookingRoutes = require('./routes/bookingRoutes');
 app.use('/api/bookings', bookingRoutes);
 
+// Blocked Date routes
+const blockedDateRoutes = require('./routes/blockedDateRoutes');
+app.use('/api/blocked-dates', blockedDateRoutes);
+
 // Contract routes
 const contractRoutes = require('./routes/contractRoutes');
 app.use('/api/contracts', contractRoutes);
@@ -107,6 +112,10 @@ app.use('/api/notifications', notificationRoutes);
 // AMC Reminder routes
 const amcReminderRoutes = require('./routes/amcReminderRoutes');
 app.use('/api/amc-reminders', amcReminderRoutes);
+
+// KYC Reminder routes
+const kycReminderRoutes = require('./routes/kycReminderRoutes');
+app.use('/api/kyc-reminders', kycReminderRoutes);
 
 // Dashboard routes
 const dashboardRoutes = require('./routes/dashboardRoutes');

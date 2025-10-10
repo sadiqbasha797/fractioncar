@@ -19,4 +19,8 @@ router.get('/overdue/list', amcController.getOverdueAMCs);
 router.post('/penalties/apply', amcController.applyPenalties);
 router.post('/:amcId/penalty/apply', amcController.applyPenaltyForAMC);
 
+// Automatic AMC generation routes (admin and superadmin only)
+router.post('/generate-automatic', amcController.generateAutomaticAMC);
+router.post('/calculate-penalties', amcController.calculatePenalties);
+
 module.exports = router;

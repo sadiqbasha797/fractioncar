@@ -28,6 +28,27 @@ class RefundService {
       const payment = await razorpay.payments.fetch(paymentId);
       console.log('Razorpay payment response:', payment);
       
+      // Debug: Check if we're in test mode
+      const isTestMode = process.env.RAZOR_PAY_KEY_ID?.startsWith('rzp_test_');
+      console.log('Razorpay configuration:', {
+        keyId: process.env.RAZOR_PAY_KEY_ID,
+        isTestMode: isTestMode,
+        paymentAmount: payment.amount,
+        paymentStatus: payment.status,
+        paymentCreatedAt: new Date(payment.created_at * 1000).toISOString()
+      });
+      
+      // In test mode, sometimes we need to handle refunds differently
+      if (isTestMode) {
+        console.log('Running in test mode - checking for test mode limitations');
+        
+        // Check if payment was made with real bank VPA (common test mode limitation)
+        if (payment.method === 'upi' && payment.vpa && !payment.vpa.includes('@razorpay')) {
+          console.log('Payment made with real bank VPA in test mode - refunds may not be supported');
+          throw new Error('Refund not supported: Payment was made with a real bank account in test mode. Refunds are only supported for test payments made with Razorpay test accounts.');
+        }
+      }
+      
       if (!payment) {
         throw new Error('Payment not found');
       }
@@ -36,11 +57,36 @@ class RefundService {
         throw new Error(`Payment must be captured to initiate refund. Current status: ${payment.status}`);
       }
 
-      // Calculate refund amount (if not specified, refund full amount)
-      const finalRefundAmount = refundAmount || payment.amount;
+      // Check if payment has already been fully refunded
+      if (payment.amount_refunded >= payment.amount) {
+        throw new Error('Payment has already been fully refunded');
+      }
+
+      // Check if payment has partial refunds and we're trying to refund more than available
+      const availableForRefund = payment.amount - payment.amount_refunded;
+      if (availableForRefund <= 0) {
+        throw new Error('No amount available for refund');
+      }
+
+      // Calculate refund amount (if not specified, refund available amount)
+      const finalRefundAmount = refundAmount || availableForRefund;
       
-      if (finalRefundAmount > payment.amount) {
-        throw new Error('Refund amount cannot exceed payment amount');
+      if (finalRefundAmount > availableForRefund) {
+        throw new Error(`Refund amount cannot exceed available amount (₹${availableForRefund / 100})`);
+      }
+
+      // Ensure refund amount is at least 100 paise (₹1) as per Razorpay requirements
+      if (finalRefundAmount < 100) {
+        throw new Error('Refund amount must be at least ₹1 (100 paise)');
+      }
+
+      // Check if payment is older than 6 months (common refund limitation)
+      const paymentDate = new Date(payment.created_at * 1000);
+      const sixMonthsAgo = new Date();
+      sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+      
+      if (paymentDate < sixMonthsAgo) {
+        console.warn('Payment is older than 6 months. Refund may not be supported by the bank.');
       }
 
       // Create refund in Razorpay
@@ -51,15 +97,64 @@ class RefundService {
         refundedBy
       });
       
-      const razorpayRefund = await razorpay.payments.refund(paymentId, {
-        amount: finalRefundAmount,
-        notes: {
-          reason: reason,
-          refunded_by: refundedBy
+      let razorpayRefund;
+      try {
+        // Try with minimal parameters first
+        const refundOptions = {
+          amount: finalRefundAmount
+        };
+        
+        // Only add notes if reason is provided
+        if (reason && reason.trim()) {
+          refundOptions.notes = {
+            reason: reason.trim(),
+            refunded_by: refundedBy
+          };
         }
-      });
-      
-      console.log('Razorpay refund created:', razorpayRefund);
+        
+        console.log('Refund options being sent:', refundOptions);
+        console.log('Payment ID type:', typeof paymentId);
+        console.log('Amount type:', typeof finalRefundAmount);
+        console.log('Amount value:', finalRefundAmount);
+        
+        // Try alternative API call format - sometimes the issue is with parameter structure
+        try {
+          // Method 1: Standard format
+          razorpayRefund = await razorpay.payments.refund(paymentId, refundOptions);
+        } catch (firstError) {
+          console.log('First attempt failed, trying alternative format:', firstError.message);
+          
+          // Method 2: Try with just amount parameter
+          razorpayRefund = await razorpay.payments.refund(paymentId, {
+            amount: finalRefundAmount
+          });
+        }
+        console.log('Razorpay refund created:', razorpayRefund);
+      } catch (razorpayError) {
+        console.error('Razorpay refund error:', razorpayError);
+        
+        // Provide more specific error messages based on common Razorpay errors
+        if (razorpayError.error && razorpayError.error.code === 'BAD_REQUEST_ERROR') {
+          if (razorpayError.error.description && razorpayError.error.description.includes('6 months')) {
+            throw new Error('Refund not supported: Payment is older than 6 months. Only instant refunds may be supported.');
+          } else if (razorpayError.error.description && razorpayError.error.description.includes('balance')) {
+            throw new Error('Refund failed: Insufficient balance in Razorpay account. Please add funds to your account.');
+          } else if (razorpayError.error.description && razorpayError.error.description.includes('amount')) {
+            throw new Error('Refund failed: Invalid refund amount. Amount must be at least ₹1 and cannot exceed payment amount.');
+          } else if (razorpayError.error.description === 'invalid request sent') {
+            // Check if this is a test mode limitation with real bank VPA
+            if (isTestMode && payment.method === 'upi' && payment.vpa && !payment.vpa.includes('@razorpay')) {
+              throw new Error('Refund not supported: Payment was made with a real bank account in test mode. Refunds are only supported for test payments made with Razorpay test accounts.');
+            } else {
+              throw new Error('Refund failed: Invalid request sent to Razorpay. This may be due to payment method restrictions or account limitations.');
+            }
+          } else {
+            throw new Error(`Refund failed: ${razorpayError.error.description || 'Invalid request sent to Razorpay'}`);
+          }
+        } else {
+          throw new Error(`Razorpay refund error: ${razorpayError.message || 'Unknown error occurred'}`);
+        }
+      }
 
       // Get user details based on transaction type
       console.log('Looking up user for transaction:', { transactionType, transactionId });
@@ -119,6 +214,9 @@ class RefundService {
       // Send notification to user
       await this.sendRefundNotification(user, refund, 'initiated');
 
+      // Send admin notification about refund initiation
+      await this.sendAdminRefundNotification(refund, 'initiated', refundedBy);
+
       logger(`Refund initiated for payment ${paymentId}, refund ID: ${razorpayRefund.id}`);
 
       return {
@@ -173,6 +271,9 @@ class RefundService {
       
       // Send notification to user
       await this.sendRefundNotification(user, refund, refund.refundStatus);
+
+      // Send admin notification about refund status update
+      await this.sendAdminRefundNotification(refund, refund.refundStatus, refund.refundedBy);
 
       logger(`Refund processed: ${razorpayRefundId}, status: ${refund.refundStatus}`);
 
@@ -254,14 +355,79 @@ class RefundService {
     }
   }
 
+  // Send admin notification about refund events
+  static async sendAdminRefundNotification(refund, status, refundedBy) {
+    try {
+      const statusMessages = {
+        'initiated': 'A refund has been initiated',
+        'processed': 'A refund has been processed',
+        'successful': 'A refund has been completed successfully',
+        'failed': 'A refund has failed',
+        'cancelled': 'A refund has been cancelled'
+      };
+
+      const message = statusMessages[status] || 'A refund status has been updated.';
+      const title = `Refund ${status.charAt(0).toUpperCase() + status.slice(1)}`;
+
+      // Get refunded by user details
+      let refundedByUser = null;
+      if (refundedBy) {
+        try {
+          const User = require('../models/User');
+          const Admin = require('../models/Admin');
+          const SuperAdmin = require('../models/SuperAdmin');
+          
+          refundedByUser = await User.findById(refundedBy) || 
+                          await Admin.findById(refundedBy) || 
+                          await SuperAdmin.findById(refundedBy);
+        } catch (error) {
+          console.log('Error finding refunded by user:', error.message);
+        }
+      }
+
+      const refundedByName = refundedByUser ? 
+        (refundedByUser.name || refundedByUser.email) : 
+        'Unknown User';
+
+      // Send admin notification
+      await notificationService.createAdminNotification(
+        'refund_admin',
+        title,
+        `${message} for payment ${refund.originalPaymentId}. Amount: ₹${refund.refundAmount / 100}. Processed by: ${refundedByName}`,
+        {
+          refundId: refund.refundId,
+          originalPaymentId: refund.originalPaymentId,
+          refundAmount: refund.refundAmount,
+          status: status,
+          refundedBy: refundedBy,
+          refundedByName: refundedByName,
+          transactionType: refund.transactionType
+        },
+        refund._id,
+        'Refund'
+      );
+
+    } catch (error) {
+      logger(`Error sending admin refund notification: ${error.message}`);
+      // Don't throw error here as it shouldn't break the refund process
+    }
+  }
+
   // Send refund notification to user
   static async sendRefundNotification(user, refund, status) {
     try {
+      // If no user provided, skip notifications (for cases where local record was deleted)
+      if (!user) {
+        console.log('No user information available for refund notification - skipping notifications');
+        return;
+      }
+
       const statusMessages = {
         'initiated': 'Your refund has been initiated and is being processed.',
         'processed': 'Your refund has been processed and will be credited to your account within 5-7 business days.',
         'successful': 'Your refund has been successfully processed and credited to your account.',
-        'failed': 'Your refund request failed. Please contact support for assistance.'
+        'failed': 'Your refund request failed. Please contact support for assistance.',
+        'cancelled': 'Your refund request has been cancelled.'
       };
 
       const message = statusMessages[status] || 'Your refund status has been updated.';
@@ -277,17 +443,19 @@ class RefundService {
       });
 
       // Send website notification
-      await notificationService.createNotification({
-        userId: user._id,
-        title: 'Refund Update',
-        message: message,
-        type: 'refund',
-        data: {
+      await notificationService.createUserNotification(
+        user._id,
+        'refund',
+        'Refund Update',
+        message,
+        {
           refundId: refund.refundId,
           refundAmount: refund.refundAmount,
           status: status
-        }
-      });
+        },
+        refund._id,
+        'Refund'
+      );
 
     } catch (error) {
       logger(`Error sending refund notification: ${error.message}`);
@@ -363,6 +531,208 @@ class RefundService {
     }
   }
 
+  // Initiate refund without local transaction record (for deleted records)
+  static async initiateRefundWithoutTransaction(paymentId, refundAmount, reason, refundedBy) {
+    try {
+      console.log('RefundService.initiateRefundWithoutTransaction called with:', {
+        paymentId,
+        refundAmount,
+        reason,
+        refundedBy
+      });
+
+      // Import models here to avoid circular dependencies
+      const Refund = require('../models/Refund');
+
+      // Get payment details from Razorpay
+      console.log('Fetching payment from Razorpay:', paymentId);
+      const payment = await razorpay.payments.fetch(paymentId);
+      console.log('Razorpay payment response:', payment);
+      
+      if (!payment) {
+        throw new Error('Payment not found');
+      }
+
+      if (payment.status !== 'captured') {
+        throw new Error(`Payment must be captured to initiate refund. Current status: ${payment.status}`);
+      }
+
+      // Check if payment has already been fully refunded
+      if (payment.amount_refunded >= payment.amount) {
+        throw new Error('Payment has already been fully refunded');
+      }
+
+      // Check if payment has partial refunds and we're trying to refund more than available
+      const availableForRefund = payment.amount - payment.amount_refunded;
+      if (availableForRefund <= 0) {
+        throw new Error('No amount available for refund');
+      }
+
+      // Calculate refund amount (if not specified, refund available amount)
+      const finalRefundAmount = refundAmount || availableForRefund;
+      
+      if (finalRefundAmount > availableForRefund) {
+        throw new Error(`Refund amount cannot exceed available amount (₹${availableForRefund / 100})`);
+      }
+
+      // Ensure refund amount is at least 100 paise (₹1) as per Razorpay requirements
+      if (finalRefundAmount < 100) {
+        throw new Error('Refund amount must be at least ₹1 (100 paise)');
+      }
+
+      // Check if payment is older than 6 months (common refund limitation)
+      const paymentDate = new Date(payment.created_at * 1000);
+      const sixMonthsAgo = new Date();
+      sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+      
+      if (paymentDate < sixMonthsAgo) {
+        console.warn('Payment is older than 6 months. Refund may not be supported by the bank.');
+      }
+
+      // Debug: Check if we're in test mode
+      const isTestMode = process.env.RAZOR_PAY_KEY_ID?.startsWith('rzp_test_');
+      console.log('Razorpay configuration:', {
+        keyId: process.env.RAZOR_PAY_KEY_ID,
+        isTestMode: isTestMode,
+        paymentAmount: payment.amount,
+        paymentStatus: payment.status,
+        paymentCreatedAt: new Date(payment.created_at * 1000).toISOString()
+      });
+      
+      // In test mode, sometimes we need to handle refunds differently
+      if (isTestMode) {
+        console.log('Running in test mode - checking for test mode limitations');
+        
+        // Check if payment was made with real bank VPA (common test mode limitation)
+        if (payment.method === 'upi' && payment.vpa && !payment.vpa.includes('@razorpay')) {
+          console.log('Payment made with real bank VPA in test mode - refunds may not be supported');
+          throw new Error('Refund not supported: Payment was made with a real bank account in test mode. Refunds are only supported for test payments made with Razorpay test accounts.');
+        }
+      }
+
+      // Create refund in Razorpay
+      console.log('Creating Razorpay refund:', {
+        paymentId,
+        amount: finalRefundAmount,
+        reason,
+        refundedBy
+      });
+      
+      let razorpayRefund;
+      try {
+        // Try with minimal parameters first
+        const refundOptions = {
+          amount: finalRefundAmount
+        };
+        
+        // Only add notes if reason is provided
+        if (reason && reason.trim()) {
+          refundOptions.notes = {
+            reason: reason.trim(),
+            refunded_by: refundedBy
+          };
+        }
+        
+        console.log('Refund options being sent:', refundOptions);
+        console.log('Payment ID type:', typeof paymentId);
+        console.log('Amount type:', typeof finalRefundAmount);
+        console.log('Amount value:', finalRefundAmount);
+        
+        // Try alternative API call format - sometimes the issue is with parameter structure
+        try {
+          // Method 1: Standard format
+          razorpayRefund = await razorpay.payments.refund(paymentId, refundOptions);
+        } catch (firstError) {
+          console.log('First attempt failed, trying alternative format:', firstError.message);
+          
+          // Method 2: Try with just amount parameter
+          razorpayRefund = await razorpay.payments.refund(paymentId, {
+            amount: finalRefundAmount
+          });
+        }
+        console.log('Razorpay refund created:', razorpayRefund);
+      } catch (razorpayError) {
+        console.error('Razorpay refund error:', razorpayError);
+        
+        // Provide more specific error messages based on common Razorpay errors
+        if (razorpayError.error && razorpayError.error.code === 'BAD_REQUEST_ERROR') {
+          if (razorpayError.error.description && razorpayError.error.description.includes('6 months')) {
+            throw new Error('Refund not supported: Payment is older than 6 months. Only instant refunds may be supported.');
+          } else if (razorpayError.error.description && razorpayError.error.description.includes('balance')) {
+            throw new Error('Refund failed: Insufficient balance in Razorpay account. Please add funds to your account.');
+          } else if (razorpayError.error.description && razorpayError.error.description.includes('amount')) {
+            throw new Error('Refund failed: Invalid refund amount. Amount must be at least ₹1 and cannot exceed payment amount.');
+          } else if (razorpayError.error.description === 'invalid request sent') {
+            // Check if this is a test mode limitation with real bank VPA
+            if (isTestMode && payment.method === 'upi' && payment.vpa && !payment.vpa.includes('@razorpay')) {
+              throw new Error('Refund not supported: Payment was made with a real bank account in test mode. Refunds are only supported for test payments made with Razorpay test accounts.');
+            } else {
+              throw new Error('Refund failed: Invalid request sent to Razorpay. This may be due to payment method restrictions or account limitations.');
+            }
+          } else {
+            throw new Error(`Refund failed: ${razorpayError.error.description || 'Invalid request sent to Razorpay'}`);
+          }
+        } else {
+          throw new Error(`Razorpay refund error: ${razorpayError.message || 'Unknown error occurred'}`);
+        }
+      }
+
+      // Create refund record without user/transaction details (since we don't have local record)
+      const refund = new Refund({
+        originalPaymentId: paymentId,
+        originalOrderId: payment.order_id,
+        refundId: razorpayRefund.id,
+        refundAmount: finalRefundAmount,
+        refundStatus: 'initiated',
+        userId: null, // No user ID since we don't have local record
+        transactionType: 'unknown', // Unknown since we don't have local record
+        transactionId: null, // No transaction ID since we don't have local record
+        refundReason: reason,
+        refundedBy,
+        razorpayRefundId: razorpayRefund.id,
+        razorpayRefundStatus: razorpayRefund.status,
+        refundMethod: 'original',
+        notes: 'Refund processed without local transaction record (record may have been deleted)'
+      });
+
+      await refund.save();
+
+      // Try to find user from payment details for notifications
+      let user = null;
+      if (payment.email) {
+        try {
+          const User = require('../models/User');
+          user = await User.findOne({ email: payment.email });
+          if (user) {
+            console.log('Found user for notifications:', user.email);
+            // Send notification to user
+            await this.sendRefundNotification(user, refund, 'initiated');
+          } else {
+            console.log('No user found with email:', payment.email);
+          }
+        } catch (error) {
+          console.log('Error finding user for notifications:', error.message);
+        }
+      }
+
+      // Send admin notification about refund initiation (even if no user found)
+      await this.sendAdminRefundNotification(refund, 'initiated', refundedBy);
+
+      logger(`Refund initiated for payment ${paymentId} without local transaction record, refund ID: ${razorpayRefund.id}`);
+
+      return {
+        success: true,
+        refund: refund,
+        razorpayRefund: razorpayRefund
+      };
+
+    } catch (error) {
+      console.error('Error in RefundService.initiateRefundWithoutTransaction:', error);
+      logger(`Error initiating refund without transaction: ${error.message}`);
+      throw error;
+    }
+  }
+
   // Cancel refund (if not yet processed)
   static async cancelRefund(refundId, reason) {
     try {
@@ -395,6 +765,9 @@ class RefundService {
       
       // Send notification to user
       await this.sendRefundNotification(user, refund, 'cancelled');
+
+      // Send admin notification about refund cancellation
+      await this.sendAdminRefundNotification(refund, 'cancelled', refundedBy);
 
       logger(`Refund cancelled: ${refundId}`);
 

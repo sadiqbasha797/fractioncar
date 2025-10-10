@@ -149,6 +149,35 @@ const sendKycRejectedEmail = async (userDetails, rejectionComments) => {
   }
 };
 
+// KYC reminder email
+const sendKycReminderEmail = async (userDetails, daysSinceRegistration) => {
+  try {
+    const template = readTemplate('kyc-reminder');
+    
+    const templateData = {
+      userName: userDetails.name,
+      daysSinceRegistration: daysSinceRegistration,
+      registrationDate: userDetails.createdAt.toLocaleDateString('en-IN', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      }),
+      kycLink: `${process.env.FRONTEND_URL || 'http://localhost:4200'}/kyc-verification`
+    };
+    
+    const htmlContent = replacePlaceholders(template, templateData);
+    
+    return await sendEmail(
+      userDetails.email,
+      '📋 Complete Your KYC Verification - Fraction',
+      htmlContent
+    );
+  } catch (error) {
+    logger(`Error sending KYC reminder email: ${error.message}`);
+    return { success: false, error: error.message };
+  }
+};
+
 
 // Password reset email (if needed in future)
 const sendPasswordResetEmail = async (userDetails, resetToken) => {
@@ -851,6 +880,7 @@ module.exports = {
   sendWelcomeEmail,
   sendKycApprovedEmail,
   sendKycRejectedEmail,
+  sendKycReminderEmail,
   sendBookingConfirmationEmail,
   sendPasswordResetEmail,
   sendVerificationEmail,

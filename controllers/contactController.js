@@ -75,6 +75,13 @@ const submitContactForm = async (req, res) => {
     const admins = await Admin.find({});
     const superAdmins = await SuperAdmin.find({});
     const allAdmins = [...admins, ...superAdmins];
+    
+    console.log(`Found ${admins.length} admins and ${superAdmins.length} super admins to notify`);
+    if (allAdmins.length > 0) {
+      console.log('Admin emails to notify:', allAdmins.map(admin => admin.email));
+    } else {
+      console.log('WARNING: No admins or super admins found in database to notify!');
+    }
 
     const adminNotificationHtml = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f8f9fa;">
@@ -114,23 +121,30 @@ const submitContactForm = async (req, res) => {
       </div>
     `;
 
-    // Send email to all admins
-    const adminEmailPromises = allAdmins.map(admin => 
-      sendEmail(
-        admin.email,
-        `New Contact Form Submission - ${subject}`,
-        adminNotificationHtml
-      )
-    );
+    // Send email to all admins (non-blocking)
+    if (allAdmins.length > 0) {
+      const adminEmailPromises = allAdmins.map(admin => 
+        sendEmail(
+          admin.email,
+          `New Contact Form Submission - ${subject}`,
+          adminNotificationHtml
+        )
+      );
 
-    const adminEmailResults = await Promise.allSettled(adminEmailPromises);
-
-    // Log any email failures
-    adminEmailResults.forEach((result, index) => {
-      if (result.status === 'rejected') {
-        logger(`Failed to send admin notification email to ${allAdmins[index].email}: ${result.reason}`);
-      }
-    });
+      // Don't wait for admin emails to complete - send them in background
+      Promise.allSettled(adminEmailPromises).then(adminEmailResults => {
+        // Log any email failures
+        adminEmailResults.forEach((result, index) => {
+          if (result.status === 'rejected') {
+            logger(`Failed to send admin notification email to ${allAdmins[index].email}: ${result.reason}`);
+          } else {
+            console.log(`Successfully sent admin notification to ${allAdmins[index].email}`);
+          }
+        });
+      }).catch(error => {
+        logger(`Error in admin email sending: ${error.message}`);
+      });
+    }
 
     res.status(201).json({
       status: 'success',
@@ -394,11 +408,121 @@ const getContactFormStats = async (req, res) => {
   }
 };
 
+// Send reply to contact form (admin only)
+const sendReply = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { subject, message } = req.body;
+    const admin = req.user;
+
+    // Validate required fields
+    if (!subject || !message) {
+      return res.status(400).json({
+        status: 'failed',
+        body: {},
+        message: 'Subject and message are required'
+      });
+    }
+
+    const contactForm = await ContactForm.findById(id);
+    if (!contactForm) {
+      return res.status(404).json({
+        status: 'failed',
+        body: {},
+        message: 'Contact form not found'
+      });
+    }
+
+    // Send reply email to user
+    const replyHtml = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f8f9fa;">
+        <div style="background-color: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+          <div style="text-align: center; margin-bottom: 30px;">
+            <h1 style="color: #2c3e50; margin: 0;">Reply from Fraction Support</h1>
+            <p style="color: #7f8c8d; margin: 10px 0 0 0;">We've received your inquiry and here's our response.</p>
+          </div>
+          
+          <div style="background-color: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+            <h3 style="color: #2c3e50; margin-top: 0;">Your Original Message:</h3>
+            <div style="background-color: white; padding: 15px; border-left: 4px solid #3498db; margin-top: 10px;">
+              <p><strong>Subject:</strong> ${contactForm.subject}</p>
+              <p><strong>Message:</strong></p>
+              <div style="margin-top: 10px;">
+                ${contactForm.message.replace(/\n/g, '<br>')}
+              </div>
+            </div>
+          </div>
+          
+          <div style="background-color: #e8f5e8; padding: 20px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #27ae60;">
+            <h3 style="color: #2c3e50; margin-top: 0;">Our Reply:</h3>
+            <div style="background-color: white; padding: 15px; border-radius: 5px; margin-top: 10px;">
+              <p><strong>Subject:</strong> ${subject}</p>
+              <p><strong>Message:</strong></p>
+              <div style="margin-top: 10px;">
+                ${message.replace(/\n/g, '<br>')}
+              </div>
+            </div>
+          </div>
+          
+          <div style="text-align: center; margin-top: 30px;">
+            <p style="color: #7f8c8d;">If you have any further questions, please don't hesitate to contact us.</p>
+            <p style="color: #7f8c8d; font-size: 14px;">For urgent queries, please call us at +91 94939 29818</p>
+          </div>
+          
+          <hr style="margin: 30px 0; border: none; border-top: 1px solid #ecf0f1;">
+          <div style="text-align: center;">
+            <p style="color: #7f8c8d; font-size: 14px; margin: 0;">
+              <strong>Fraction - Car Sharing Platform</strong><br>
+              Bengaluru, Karnataka 560041<br>
+              contact@fractioncar.com
+            </p>
+          </div>
+        </div>
+      </div>
+    `;
+
+    const emailResult = await sendEmail(
+      contactForm.email,
+      subject,
+      replyHtml
+    );
+
+    // Update contact form status to replied
+    contactForm.status = 'replied';
+    contactForm.repliedBy = {
+      id: admin.id,
+      name: admin.name || 'Admin',
+      role: admin.role
+    };
+    contactForm.repliedAt = new Date();
+
+    await contactForm.save();
+
+    res.json({
+      status: 'success',
+      body: { 
+        contactForm,
+        emailSent: emailResult.success
+      },
+      message: 'Reply sent successfully'
+    });
+
+  } catch (error) {
+    logger(`Error in sendReply: ${error.message}`);
+    res.status(500).json({
+      status: 'failed',
+      body: {},
+      message: 'Internal server error'
+    });
+  }
+};
+
 module.exports = {
   submitContactForm,
   getAllContactForms,
   getContactFormById,
   updateContactFormStatus,
   deleteContactForm,
-  getContactFormStats
+  getContactFormStats,
+  sendReply
 };
