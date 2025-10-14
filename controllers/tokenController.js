@@ -396,6 +396,23 @@ const requestTokenCancellation = async (req, res) => {
         'Token'
       );
       
+      // Send notification to user
+      await NotificationService.createUserNotification(
+        token.userid._id,
+        'token_refund_requested',
+        'Token Cancellation Requested',
+        `Your cancellation request for token ${token.customtokenid} has been submitted. Our team will review it and process your refund within 1-2 business days.`,
+        {
+          tokenId: token._id,
+          tokenCustomId: token.customtokenid,
+          amountPaid: token.amountpaid,
+          reason: reason || 'No reason provided',
+          status: 'refund_requested'
+        },
+        token._id,
+        'Token'
+      );
+      
       logger(`Token cancellation request created for token ${token._id} by user ${req.user.id}`);
     } catch (notificationError) {
       logger(`Error creating notification for token cancellation: ${notificationError.message}`);
@@ -474,6 +491,23 @@ const approveTokenRefund = async (req, res) => {
         'Token'
       );
       
+      // Send notification to user
+      await NotificationService.createUserNotification(
+        token.userid._id,
+        'token_refund_approved',
+        'Token Refund Approved',
+        `Your refund request for token ${token.customtokenid} has been approved. The refund process has been initiated and you will receive the amount within 5-7 business days.`,
+        {
+          tokenId: token._id,
+          tokenCustomId: token.customtokenid,
+          amountPaid: token.amountpaid,
+          status: 'refund_initiated',
+          approvedBy: req.user.name || req.user.email
+        },
+        token._id,
+        'Token'
+      );
+      
       logger(`Token refund approved for token ${token._id} by ${req.user.role} ${req.user.id}`);
     } catch (notificationError) {
       logger(`Error creating notification for token refund approval: ${notificationError.message}`);
@@ -545,6 +579,24 @@ const rejectTokenRefund = async (req, res) => {
           userEmail: token.userid.email,
           tokenCustomId: token.customtokenid,
           amountPaid: token.amountpaid,
+          rejectedBy: req.user.name || req.user.email,
+          rejectionReason: reason || 'No reason provided'
+        },
+        token._id,
+        'Token'
+      );
+      
+      // Send notification to user
+      await NotificationService.createUserNotification(
+        token.userid._id,
+        'token_refund_rejected',
+        'Token Refund Rejected',
+        `Your refund request for token ${token.customtokenid} has been rejected. Reason: ${reason || 'No reason provided'}. Please contact support if you have any questions.`,
+        {
+          tokenId: token._id,
+          tokenCustomId: token.customtokenid,
+          amountPaid: token.amountpaid,
+          status: 'active',
           rejectedBy: req.user.name || req.user.email,
           rejectionReason: reason || 'No reason provided'
         },

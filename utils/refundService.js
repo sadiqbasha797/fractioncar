@@ -35,8 +35,20 @@ class RefundService {
         isTestMode: isTestMode,
         paymentAmount: payment.amount,
         paymentStatus: payment.status,
-        paymentCreatedAt: new Date(payment.created_at * 1000).toISOString()
+        paymentCreatedAt: new Date(payment.created_at * 1000).toISOString(),
+        paymentEmail: payment.email,
+        paymentContact: payment.contact
       });
+      
+      // Check if payment has test customer details but we're in production mode
+      if (!isTestMode && (payment.email === 'user@example.com' || payment.contact === '9999999999')) {
+        console.warn('WARNING: Payment has test customer details but Razorpay is in production mode');
+        console.warn('This may cause refund issues. Payment details:', {
+          email: payment.email,
+          contact: payment.contact,
+          method: payment.method
+        });
+      }
       
       // In test mode, sometimes we need to handle refunds differently
       if (isTestMode) {
@@ -59,6 +71,12 @@ class RefundService {
 
       // Check if payment has already been fully refunded
       if (payment.amount_refunded >= payment.amount) {
+        console.log('Payment refund check:', {
+          paymentId,
+          amount: payment.amount,
+          amount_refunded: payment.amount_refunded,
+          isFullyRefunded: payment.amount_refunded >= payment.amount
+        });
         throw new Error('Payment has already been fully refunded');
       }
 
@@ -436,7 +454,7 @@ class RefundService {
       await emailService.sendRefundNotification(user.email, {
         userName: user.name,
         refundId: refund.refundId,
-        refundAmount: refund.refundAmount,
+        refundAmount: refund.refundAmount / 100, // Convert from paise to rupees
         status: status,
         message: message,
         transactionType: refund.transactionType
@@ -559,6 +577,12 @@ class RefundService {
 
       // Check if payment has already been fully refunded
       if (payment.amount_refunded >= payment.amount) {
+        console.log('Payment refund check:', {
+          paymentId,
+          amount: payment.amount,
+          amount_refunded: payment.amount_refunded,
+          isFullyRefunded: payment.amount_refunded >= payment.amount
+        });
         throw new Error('Payment has already been fully refunded');
       }
 
@@ -596,8 +620,20 @@ class RefundService {
         isTestMode: isTestMode,
         paymentAmount: payment.amount,
         paymentStatus: payment.status,
-        paymentCreatedAt: new Date(payment.created_at * 1000).toISOString()
+        paymentCreatedAt: new Date(payment.created_at * 1000).toISOString(),
+        paymentEmail: payment.email,
+        paymentContact: payment.contact
       });
+      
+      // Check if payment has test customer details but we're in production mode
+      if (!isTestMode && (payment.email === 'user@example.com' || payment.contact === '9999999999')) {
+        console.warn('WARNING: Payment has test customer details but Razorpay is in production mode');
+        console.warn('This may cause refund issues. Payment details:', {
+          email: payment.email,
+          contact: payment.contact,
+          method: payment.method
+        });
+      }
       
       // In test mode, sometimes we need to handle refunds differently
       if (isTestMode) {

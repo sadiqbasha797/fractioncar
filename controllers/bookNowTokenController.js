@@ -325,6 +325,23 @@ const requestBookNowTokenCancellation = async (req, res) => {
         'BookNowToken'
       );
       
+      // Send notification to user
+      await NotificationService.createUserNotification(
+        bookNowToken.userid._id,
+        'booknow_token_refund_requested',
+        'Book Now Token Cancellation Requested',
+        `Your cancellation request for book now token ${bookNowToken.customtokenid} has been submitted. Our team will review it and process your refund within 1-2 business days.`,
+        {
+          tokenId: bookNowToken._id,
+          tokenCustomId: bookNowToken.customtokenid,
+          amountPaid: bookNowToken.amountpaid,
+          reason: reason || 'No reason provided',
+          status: 'refund_requested'
+        },
+        bookNowToken._id,
+        'BookNowToken'
+      );
+      
       logger(`Book now token cancellation request created for token ${bookNowToken._id} by user ${req.user.id}`);
     } catch (notificationError) {
       logger(`Error creating notification for book now token cancellation: ${notificationError.message}`);
@@ -403,6 +420,23 @@ const approveBookNowTokenRefund = async (req, res) => {
         'BookNowToken'
       );
       
+      // Send notification to user
+      await NotificationService.createUserNotification(
+        bookNowToken.userid._id,
+        'booknow_token_refund_approved',
+        'Book Now Token Refund Approved',
+        `Your refund request for book now token ${bookNowToken.customtokenid} has been approved. The refund process has been initiated and you will receive the amount within 5-7 business days.`,
+        {
+          tokenId: bookNowToken._id,
+          tokenCustomId: bookNowToken.customtokenid,
+          amountPaid: bookNowToken.amountpaid,
+          status: 'refund_initiated',
+          approvedBy: req.user.name || req.user.email
+        },
+        bookNowToken._id,
+        'BookNowToken'
+      );
+      
       logger(`Book now token refund approved for token ${bookNowToken._id} by ${req.user.role} ${req.user.id}`);
     } catch (notificationError) {
       logger(`Error creating notification for book now token refund approval: ${notificationError.message}`);
@@ -474,6 +508,24 @@ const rejectBookNowTokenRefund = async (req, res) => {
           userEmail: bookNowToken.userid.email,
           tokenCustomId: bookNowToken.customtokenid,
           amountPaid: bookNowToken.amountpaid,
+          rejectedBy: req.user.name || req.user.email,
+          rejectionReason: reason || 'No reason provided'
+        },
+        bookNowToken._id,
+        'BookNowToken'
+      );
+      
+      // Send notification to user
+      await NotificationService.createUserNotification(
+        bookNowToken.userid._id,
+        'booknow_token_refund_rejected',
+        'Book Now Token Refund Rejected',
+        `Your refund request for book now token ${bookNowToken.customtokenid} has been rejected. Reason: ${reason || 'No reason provided'}. Please contact support if you have any questions.`,
+        {
+          tokenId: bookNowToken._id,
+          tokenCustomId: bookNowToken.customtokenid,
+          amountPaid: bookNowToken.amountpaid,
+          status: 'active',
           rejectedBy: req.user.name || req.user.email,
           rejectionReason: reason || 'No reason provided'
         },

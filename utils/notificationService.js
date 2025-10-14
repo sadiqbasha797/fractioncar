@@ -216,7 +216,14 @@ class NotificationService {
       'user_deactivated': 'high',
       'user_reactivated': 'high',
       'user_suspension_expired': 'high',
-      'user_status_changed': 'high'
+      'user_status_changed': 'high',
+      'refund': 'high',
+      'token_refund_requested': 'high',
+      'token_refund_approved': 'high',
+      'token_refund_rejected': 'high',
+      'booknow_token_refund_requested': 'high',
+      'booknow_token_refund_approved': 'high',
+      'booknow_token_refund_rejected': 'high'
     };
 
     return priorityMap[type] || 'medium';

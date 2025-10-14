@@ -14,6 +14,7 @@ app.use(cors({
     'http://localhost:59459', // Additional development port
     'https://fraction.projexino.com', // Production frontend URL
     'https://www.fractioncar.com', // Production frontend URL
+    'https://fractioncar.com', // Production frontend URL
     'https://fractionadmin.projexino.com', // Production frontend URL
     'https://fraction2.projexino.com', // Production frontend URL
     'https://fractionbackend.projexino.com' // Production backend URL (for self-referencing)
