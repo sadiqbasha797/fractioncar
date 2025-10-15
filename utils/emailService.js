@@ -269,7 +269,7 @@ const sendVerificationEmail = async (userDetails, verificationCode) => {
     
     return await sendEmail(
       userDetails.email,
-      '📧 Verify Your Email - Fraction Account',
+      '📧 Verify Your Email - Fraction Car Account',
       htmlContent
     );
   } catch (error) {
@@ -310,6 +310,12 @@ const sendTokenPurchaseConfirmationEmail = async (userDetails, tokenDetails, car
   try {
     const template = readTemplate('token-purchase-confirmation');
     
+    // Map car fields safely from schema
+    const carName = carDetails?.carname || carDetails?.name || 'N/A';
+    const carBrand = carDetails?.brandname || carDetails?.brand || 'N/A';
+    const carYear = carDetails?.year || carDetails?.modelYear || 'N/A';
+    const carLocation = carDetails?.location || 'N/A';
+
     const templateData = {
       userName: userDetails.name,
       tokenId: tokenDetails._id,
@@ -327,10 +333,10 @@ const sendTokenPurchaseConfirmationEmail = async (userDetails, tokenDetails, car
         day: 'numeric'
       }),
       status: tokenDetails.status,
-      carName: carDetails.name,
-      carBrand: carDetails.brand,
-      carYear: carDetails.year,
-      carLocation: carDetails.location,
+      carName: carName,
+      carBrand: carBrand,
+      carYear: carYear,
+      carLocation: carLocation,
       amountPaid: tokenDetails.amountpaid,
       dashboardLink: `${process.env.FRONTEND_URL || 'http://localhost:4200'}/dashboard`
     };
@@ -353,6 +359,12 @@ const sendBookNowTokenPurchaseConfirmationEmail = async (userDetails, tokenDetai
   try {
     const template = readTemplate('booknow-token-purchase-confirmation');
     
+    // Map car fields safely from schema
+    const carName = carDetails?.carname || carDetails?.name || 'N/A';
+    const carBrand = carDetails?.brandname || carDetails?.brand || 'N/A';
+    const carYear = carDetails?.year || carDetails?.modelYear || 'N/A';
+    const carLocation = carDetails?.location || 'N/A';
+
     const templateData = {
       userName: userDetails.name,
       tokenId: tokenDetails._id,
@@ -370,10 +382,10 @@ const sendBookNowTokenPurchaseConfirmationEmail = async (userDetails, tokenDetai
         day: 'numeric'
       }),
       status: tokenDetails.status,
-      carName: carDetails.name,
-      carBrand: carDetails.brand,
-      carYear: carDetails.year,
-      carLocation: carDetails.location,
+      carName: carName,
+      carBrand: carBrand,
+      carYear: carYear,
+      carLocation: carLocation,
       amountPaid: tokenDetails.amountpaid,
       bookingLink: `${process.env.FRONTEND_URL || 'http://localhost:4200'}/cars/${carDetails._id}`
     };
@@ -609,6 +621,12 @@ const sendBookingConfirmationEmail = async (userDetails, bookingDetails, carDeta
     const durationDays = Math.ceil(durationMs / (1000 * 60 * 60 * 24));
     const duration = durationDays === 1 ? '1 day' : `${durationDays} days`;
     
+    // Map car fields safely from schema
+    const carName = carDetails?.carname || carDetails?.name || 'N/A';
+    const carBrand = carDetails?.brandname || carDetails?.brand || 'N/A';
+    const carYear = carDetails?.year || carDetails?.modelYear || 'N/A';
+    const carLocation = carDetails?.location || 'N/A';
+    
     const templateData = {
       userName: userDetails.name,
       bookingId: bookingDetails._id,
@@ -634,10 +652,10 @@ const sendBookingConfirmationEmail = async (userDetails, bookingDetails, carDeta
       }),
       bookingStatus: bookingDetails.status,
       comments: bookingDetails.comments || '',
-      carName: carDetails.name,
-      carBrand: carDetails.brand,
-      carYear: carDetails.year,
-      carLocation: carDetails.location,
+      carName: carName,
+      carBrand: carBrand,
+      carYear: carYear,
+      carLocation: carLocation,
       bookingDetailsLink: `${process.env.FRONTEND_URL || 'http://localhost:4200'}/bookings/${bookingDetails._id}`
     };
     
