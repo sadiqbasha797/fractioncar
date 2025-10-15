@@ -1,7 +1,7 @@
 const ContactForm = require('../models/ContactForm');
 const Admin = require('../models/Admin');
 const SuperAdmin = require('../models/SuperAdmin');
-const { sendEmail } = require('../utils/emailService');
+const { sendContactFormEmail } = require('../utils/emailService');
 const logger = require('../utils/logger');
 
 // Submit contact form
@@ -56,32 +56,28 @@ const submitContactForm = async (req, res) => {
           <hr style="margin: 30px 0; border: none; border-top: 1px solid #ecf0f1;">
           <div style="text-align: center;">
             <p style="color: #7f8c8d; font-size: 14px; margin: 0;">
-              <strong>Fraction - Car Sharing Platform</strong><br>
+              <strong>FractionCar - Car Sharing Platform</strong><br>
               Bengaluru, Karnataka 560041<br>
-              contact@fractioncar.com
+              contact@fractioncar.com<br><br>
+              <a href="https://www.youtube.com/@FractionCar" style="color: #3498db; text-decoration: none;">
+                📺 Subscribe to our YouTube Channel
+              </a>
             </p>
           </div>
         </div>
       </div>
     `;
 
-    const userEmailResult = await sendEmail(
+    console.log('Sending user acknowledgment email to:', email);
+    const userEmailResult = await sendContactFormEmail(
       email,
-      'Thank You for Contacting Fraction - We\'ll Get Back to You Soon!',
+      'Thank You for Contacting FractionCar - We\'ll Get Back to You Soon!',
       userAcknowledgmentHtml
     );
+    console.log('User email result:', userEmailResult);
 
-    // Send notification email to admins and super admins
-    const admins = await Admin.find({});
-    const superAdmins = await SuperAdmin.find({});
-    const allAdmins = [...admins, ...superAdmins];
-    
-    console.log(`Found ${admins.length} admins and ${superAdmins.length} super admins to notify`);
-    if (allAdmins.length > 0) {
-      console.log('Admin emails to notify:', allAdmins.map(admin => admin.email));
-    } else {
-      console.log('WARNING: No admins or super admins found in database to notify!');
-    }
+    // Send notification email to contact-us@fractioncar.com only
+    const adminEmail = 'contact-us@fractioncar.com';
 
     const adminNotificationHtml = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f8f9fa;">
@@ -113,38 +109,33 @@ const submitContactForm = async (req, res) => {
           <hr style="margin: 30px 0; border: none; border-top: 1px solid #ecf0f1;">
           <div style="text-align: center;">
             <p style="color: #7f8c8d; font-size: 14px; margin: 0;">
-              <strong>Fraction Admin Panel</strong><br>
-              This is an automated notification
+              <strong>FractionCar Admin Panel</strong><br>
+              This is an automated notification<br><br>
+              <a href="https://www.youtube.com/@FractionCar" style="color: #3498db; text-decoration: none;">
+                📺 Subscribe to our YouTube Channel
+              </a>
             </p>
           </div>
         </div>
       </div>
     `;
 
-    // Send email to all admins (non-blocking)
-    if (allAdmins.length > 0) {
-      const adminEmailPromises = allAdmins.map(admin => 
-        sendEmail(
-          admin.email,
-          `New Contact Form Submission - ${subject}`,
-          adminNotificationHtml
-        )
-      );
-
-      // Don't wait for admin emails to complete - send them in background
-      Promise.allSettled(adminEmailPromises).then(adminEmailResults => {
-        // Log any email failures
-        adminEmailResults.forEach((result, index) => {
-          if (result.status === 'rejected') {
-            logger(`Failed to send admin notification email to ${allAdmins[index].email}: ${result.reason}`);
-          } else {
-            console.log(`Successfully sent admin notification to ${allAdmins[index].email}`);
-          }
-        });
-      }).catch(error => {
-        logger(`Error in admin email sending: ${error.message}`);
-      });
-    }
+    // Send email to contact-us@fractioncar.com (non-blocking)
+    console.log('Sending admin notification email to:', adminEmail);
+    sendContactFormEmail(
+      adminEmail,
+      `New Contact Form Submission - ${subject}`,
+      adminNotificationHtml
+    ).then(result => {
+      console.log('Admin email result:', result);
+      if (result.success) {
+        console.log(`Successfully sent admin notification to ${adminEmail}`);
+      } else {
+        logger(`Failed to send admin notification email to ${adminEmail}: ${result.error}`);
+      }
+    }).catch(error => {
+      logger(`Error in admin email sending: ${error.message}`);
+    });
 
     res.status(201).json({
       status: 'success',
@@ -438,7 +429,7 @@ const sendReply = async (req, res) => {
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f8f9fa;">
         <div style="background-color: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
           <div style="text-align: center; margin-bottom: 30px;">
-            <h1 style="color: #2c3e50; margin: 0;">Reply from Fraction Support</h1>
+            <h1 style="color: #2c3e50; margin: 0;">Reply from FractionCar Support</h1>
             <p style="color: #7f8c8d; margin: 10px 0 0 0;">We've received your inquiry and here's our response.</p>
           </div>
           
@@ -472,20 +463,25 @@ const sendReply = async (req, res) => {
           <hr style="margin: 30px 0; border: none; border-top: 1px solid #ecf0f1;">
           <div style="text-align: center;">
             <p style="color: #7f8c8d; font-size: 14px; margin: 0;">
-              <strong>Fraction - Car Sharing Platform</strong><br>
+              <strong>FractionCar - Car Sharing Platform</strong><br>
               Bengaluru, Karnataka 560041<br>
-              contact@fractioncar.com
+              contact@fractioncar.com<br><br>
+              <a href="https://www.youtube.com/@FractionCar" style="color: #3498db; text-decoration: none;">
+                📺 Subscribe to our YouTube Channel
+              </a>
             </p>
           </div>
         </div>
       </div>
     `;
 
-    const emailResult = await sendEmail(
+    console.log('Sending reply email to:', contactForm.email);
+    const emailResult = await sendContactFormEmail(
       contactForm.email,
       subject,
       replyHtml
     );
+    console.log('Reply email result:', emailResult);
 
     // Update contact form status to replied
     contactForm.status = 'replied';

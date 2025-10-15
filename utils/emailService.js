@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const nodemailer = require('nodemailer');
 const { createTransporter } = require('../config/mail');
 const logger = require('./logger');
 
@@ -27,6 +28,20 @@ const replacePlaceholders = (template, data) => {
   return processedTemplate;
 };
 
+// Create contact form specific transporter
+const createContactFormTransporter = () => {
+  return nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+      user: 'contact-us@fractioncar.com',
+      pass: 'svkr fjvh reja dxcd'
+    },
+    tls: {
+      rejectUnauthorized: false
+    }
+  });
+};
+
 // Generic email sending function
 const sendEmail = async (to, subject, htmlContent, textContent = null) => {
   try {
@@ -34,7 +49,7 @@ const sendEmail = async (to, subject, htmlContent, textContent = null) => {
     
     const mailOptions = {
       from: {
-        name: 'Fraction - Car Sharing',
+        name: 'FractionCar - Car Sharing',
         address: process.env.MAIL
       },
       to: to,
@@ -51,6 +66,37 @@ const sendEmail = async (to, subject, htmlContent, textContent = null) => {
     };
   } catch (error) {
     logger(`Error sending email to ${to}: ${error.message}`);
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+};
+
+// Contact form specific email sending function
+const sendContactFormEmail = async (to, subject, htmlContent, textContent = null) => {
+  try {
+    const transporter = createContactFormTransporter();
+    
+    const mailOptions = {
+      from: {
+        name: 'FractionCar - Contact Support',
+        address: 'contact-us@fractioncar.com'
+      },
+      to: to,
+      subject: subject,
+      html: htmlContent,
+      text: textContent || htmlContent.replace(/<[^>]*>/g, '') // Strip HTML for text version
+    };
+
+    const result = await transporter.sendMail(mailOptions);
+    logger(`Contact form email sent successfully to ${to}: ${result.messageId}`);
+    return {
+      success: true,
+      messageId: result.messageId
+    };
+  } catch (error) {
+    logger(`Error sending contact form email to ${to}: ${error.message}`);
     return {
       success: false,
       error: error.message
@@ -877,6 +923,7 @@ const sendSharedMemberRejectedNotification = async (userDetails, sharedMemberDet
 
 module.exports = {
   sendEmail,
+  sendContactFormEmail,
   sendWelcomeEmail,
   sendKycApprovedEmail,
   sendKycRejectedEmail,
