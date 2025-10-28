@@ -1,0 +1,42 @@
+{
+  "name": "backend",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node index.js",
+    "dev": "nodemon index.js",
+    "update-cars-stopbookings": "node scripts/update-cars-stopbookings.js",
+    "update-cars-mongodb": "node scripts/update-cars-mongodb.js",
+    "migrate": "node scripts/run-migrations.js",
+    "migrate:add-viewcount": "node scripts/migrate-add-viewcount.js",
+    "migrate:add-sample-views": "node scripts/migrate-add-sample-views.js",
+    "migrate:remove-viewcount": "node scripts/migrate-remove-viewcount.js",
+    "debug:db": "node scripts/debug-database.js",
+    "scheduler": "node scripts/amcScheduler.js",
+    "scheduler:dev": "nodemon scripts/amcScheduler.js",
+    "kyc-scheduler": "node scripts/kycReminderScheduler.js",
+    "kyc-scheduler:dev": "nodemon scripts/kycReminderScheduler.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "nodemon": "^3.1.10"
+  },
+  "dependencies": {
+    "axios": "^1.12.2",
+    "bcrypt": "^6.0.0",
+    "cloudinary": "^2.7.0",
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.1",
+    "express": "^5.1.0",
+    "express-rate-limit": "^8.1.0",
+    "mongoose": "^8.17.1",
+    "multer": "^2.0.2",
+    "node-cron": "^3.0.3",
+    "nodemailer": "^7.0.5",
+    "razorpay": "^2.9.2"
+  }
+}

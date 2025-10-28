@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Welcome to Fraction</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+        .email-container {
+            background-color: #ffffff;
+            padding: 40px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .logo {
+            font-size: 32px;
+            font-weight: bold;
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+        .welcome-title {
+            color: #3498db;
+            font-size: 28px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .content {
+            margin-bottom: 30px;
+        }
+        .highlight {
+            background-color: #ecf0f1;
+            padding: 20px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+        .cta-button {
+            display: inline-block;
+            background-color: #3498db;
+            color: white;
+            padding: 12px 30px;
+            text-decoration: none;
+            border-radius: 5px;
+            font-weight: bold;
+            text-align: center;
+            margin: 20px 0;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid #ecf0f1;
+            color: #7f8c8d;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="email-container">
+        <div class="header">
+            <div class="logo">FRACTION</div>
+            <p style="color: #7f8c8d; margin: 0;">Car Sharing Platform</p>
+        </div>
+        
+        <h1 class="welcome-title">Welcome to Fraction! 🎉</h1>
+        
+        <div class="content">
+            <p>Dear <strong>{{userName}}</strong>,</p>
+            
+            <p>Welcome to <strong>Fraction</strong> - your premier car sharing platform! We're thrilled to have you join our community of smart, sustainable transportation enthusiasts.</p>
+            
+            <div class="highlight">
+                <h3 style="color: #2c3e50; margin-top: 0;">Your Account Details:</h3>
+                <p><strong>Email:</strong> {{userEmail}}</p>
+                <p><strong>Registration Date:</strong> {{registrationDate}}</p>
+                <p><strong>Account Status:</strong> Active</p>
+            </div>
+            
+            <p>Here's what you can do with your Fraction account:</p>
+            <ul>
+                <li>🚗 Browse and book available cars in your area</li>
+                <li>📱 Manage your bookings through our user-friendly platform</li>
+                <li>💳 Secure and easy payment processing</li>
+                <li>🔒 Complete KYC verification for enhanced security</li>
+                <li>📞 24/7 customer support</li>
+            </ul>
+            
+            <p>To get started and unlock all features, please complete your KYC verification process.</p>
+            
+            <div style="text-align: center;">
+                <a href="{{kycLink}}" class="cta-button">Complete KYC Verification</a>
+            </div>
+        </div>
+        
+        <div class="footer">
+            <p>Thank you for choosing Fraction!</p>
+            <p>If you have any questions, feel free to contact our support team.</p>
+            <p style="margin-top: 20px;">
+                <strong>Fraction Team</strong><br>
+                Email: support@fraction.com<br>
+                Phone: +91-XXXXXXXXXX
+            </p>
+        </div>
+    </div>
+</body>
+</html>

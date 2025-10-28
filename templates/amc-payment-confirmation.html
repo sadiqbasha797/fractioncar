@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AMC Payment Confirmation - Fraction</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+        .email-container {
+            background-color: #ffffff;
+            padding: 40px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .logo {
+            font-size: 32px;
+            font-weight: bold;
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+        .title {
+            color: #8e44ad;
+            font-size: 28px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .content {
+            margin-bottom: 30px;
+        }
+        .amc-details {
+            background-color: #f4f0f7;
+            padding: 20px;
+            border-radius: 5px;
+            margin: 20px 0;
+            border-left: 4px solid #8e44ad;
+        }
+        .car-details {
+            background-color: #f8f9fa;
+            padding: 20px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+        .amount-highlight {
+            background-color: #f0e6ff;
+            padding: 15px;
+            border-radius: 5px;
+            text-align: center;
+            margin: 20px 0;
+            border: 2px solid #8e44ad;
+        }
+        .cta-button {
+            display: inline-block;
+            background-color: #8e44ad;
+            color: white;
+            padding: 12px 30px;
+            text-decoration: none;
+            border-radius: 5px;
+            font-weight: bold;
+            text-align: center;
+            margin: 20px 0;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid #ecf0f1;
+            color: #7f8c8d;
+            font-size: 14px;
+        }
+        .status-badge {
+            display: inline-block;
+            background-color: #8e44ad;
+            color: white;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+        .year-details {
+            background-color: #e8f5e8;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="email-container">
+        <div class="header">
+            <div class="logo">FRACTION</div>
+            <p style="color: #7f8c8d; margin: 0;">Car Sharing Platform</p>
+        </div>
+        
+        <h1 class="title">🔧 AMC Payment Confirmed!</h1>
+        
+        <div class="content">
+            <p>Dear <strong>{{userName}}</strong>,</p>
+            
+            <p>Thank you for your Annual Maintenance Charges (AMC) payment! Your car's maintenance is now covered for the specified period.</p>
+            
+            <div class="amc-details">
+                <h3 style="color: #2c3e50; margin-top: 0;">AMC Payment Details:</h3>
+                <p><strong>AMC ID:</strong> {{amcId}}</p>
+                <p><strong>Payment Date:</strong> {{paymentDate}}</p>
+                <p><strong>Status:</strong> <span class="status-badge">{{status}}</span></p>
+                <p><strong>Ticket Reference:</strong> {{ticketId}}</p>
+            </div>
+            
+            <div class="car-details">
+                <h3 style="color: #2c3e50; margin-top: 0;">Car Information:</h3>
+                <p><strong>Car Model:</strong> {{carName}}</p>
+                <p><strong>Brand:</strong> {{carBrand}}</p>
+                <p><strong>Year:</strong> {{carYear}}</p>
+                <p><strong>Registration Number:</strong> {{carRegistration}}</p>
+            </div>
+            
+            <div class="amount-highlight">
+                <h3 style="margin-top: 0; color: #8e44ad;">Total Amount Paid: ₹{{totalAmount}}</h3>
+                <p style="margin: 5px 0; color: #666;">Payment successful and AMC activated</p>
+            </div>
+            
+            <h3 style="color: #2c3e50;">AMC Coverage Details:</h3>
+            {{#each amcYears}}
+            <div class="year-details">
+                <p><strong>Year {{year}}:</strong> ₹{{amount}} - <span style="color: #27ae60;">✓ Paid on {{paiddate}}</span></p>
+            </div>
+            {{/each}}
+            
+            <p><strong>What's included in your AMC:</strong></p>
+            <ul>
+                <li>🔧 Regular maintenance and servicing</li>
+                <li>🛠️ Minor repairs and replacements</li>
+                <li>🛡️ Extended warranty coverage</li>
+                <li>📞 24/7 roadside assistance</li>
+                <li>🚗 Priority booking privileges</li>
+            </ul>
+            
+            <p>Your AMC is now active and will cover all maintenance needs for the specified period. Keep your payment receipt for your records.</p>
+            
+            <div style="text-align: center;">
+                <a href="{{dashboardLink}}" class="cta-button">View AMC Details</a>
+            </div>
+        </div>
+        
+        <div class="footer">
+            <p>Thank you for choosing Fraction!</p>
+            <p>If you have any questions about your AMC payment, feel free to contact our support team.</p>
+            <p style="margin-top: 20px;">
+                <strong>Fraction Team</strong><br>
+                Email: support@fraction.com<br>
+                Phone: +91-XXXXXXXXXX
+            </p>
+        </div>
+    </div>
+</body>
+</html>

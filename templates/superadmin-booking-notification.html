@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>New Booking Notification - Fraction Admin</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+        .email-container {
+            background-color: #ffffff;
+            padding: 40px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .logo {
+            font-size: 32px;
+            font-weight: bold;
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+        .title {
+            color: #3498db;
+            font-size: 28px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .content {
+            margin-bottom: 30px;
+        }
+        .notification-box {
+            background-color: #e3f2fd;
+            padding: 20px;
+            border-radius: 5px;
+            margin: 20px 0;
+            border-left: 4px solid #3498db;
+        }
+        .user-details {
+            background-color: #f8f9fa;
+            padding: 20px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+        .booking-details {
+            background-color: #ecf0f1;
+            padding: 20px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+        .car-details {
+            background-color: #f0f8ff;
+            padding: 20px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+        .cta-button {
+            display: inline-block;
+            background-color: #3498db;
+            color: white;
+            padding: 12px 30px;
+            text-decoration: none;
+            border-radius: 5px;
+            font-weight: bold;
+            text-align: center;
+            margin: 20px 0;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid #ecf0f1;
+            color: #7f8c8d;
+            font-size: 14px;
+        }
+        .status-badge {
+            display: inline-block;
+            background-color: #27ae60;
+            color: white;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #ecf0f1;
+        }
+        .detail-row:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+            padding-bottom: 0;
+        }
+        .action-required {
+            background-color: #fff3cd;
+            border: 1px solid #ffeaa7;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="email-container">
+        <div class="header">
+            <div class="logo">FRACTION ADMIN</div>
+            <p style="color: #7f8c8d; margin: 0;">Administrative Notification</p>
+        </div>
+        
+        <h1 class="title">🚗 New Booking Received</h1>
+        
+        <div class="content">
+            <div class="notification-box">
+                <h3 style="color: #3498db; margin-top: 0;">📢 New Car Booking</h3>
+                <p style="margin: 5px 0;">A customer has made a new booking for one of your cars.</p>
+            </div>
+            
+            <div class="user-details">
+                <h3 style="color: #2c3e50; margin-top: 0;">👤 Customer Information:</h3>
+                
+                <div class="detail-row">
+                    <span><strong>Name:</strong></span>
+                    <span>{{userName}}</span>
+                </div>
+                
+                <div class="detail-row">
+                    <span><strong>Email:</strong></span>
+                    <span>{{userEmail}}</span>
+                </div>
+                
+                <div class="detail-row">
+                    <span><strong>Phone:</strong></span>
+                    <span>{{userPhone}}</span>
+                </div>
+                
+                <div class="detail-row">
+                    <span><strong>User ID:</strong></span>
+                    <span>{{userId}}</span>
+                </div>
+                
+                <div class="detail-row">
+                    <span><strong>Booking Date:</strong></span>
+                    <span>{{bookingDate}}</span>
+                </div>
+            </div>
+            
+            <div class="booking-details">
+                <h3 style="color: #2c3e50; margin-top: 0;">📅 Booking Details:</h3>
+                
+                <div class="detail-row">
+                    <span><strong>Booking ID:</strong></span>
+                    <span>{{bookingId}}</span>
+                </div>
+                
+                <div class="detail-row">
+                    <span><strong>Start Date:</strong></span>
+                    <span>{{bookingFrom}}</span>
+                </div>
+                
+                <div class="detail-row">
+                    <span><strong>End Date:</strong></span>
+                    <span>{{bookingTo}}</span>
+                </div>
+                
+                <div class="detail-row">
+                    <span><strong>Duration:</strong></span>
+                    <span>{{duration}}</span>
+                </div>
+                
+                <div class="detail-row">
+                    <span><strong>Status:</strong></span>
+                    <span><span class="status-badge">{{bookingStatus}}</span></span>
+                </div>
+                
+                {{#if comments}}
+                <div class="detail-row">
+                    <span><strong>Comments:</strong></span>
+                    <span>{{comments}}</span>
+                </div>
+                {{/if}}
+            </div>
+            
+            <div class="car-details">
+                <h3 style="color: #2c3e50; margin-top: 0;">🚗 Car Information:</h3>
+                
+                <div class="detail-row">
+                    <span><strong>Car Model:</strong></span>
+                    <span>{{carName}}</span>
+                </div>
+                
+                <div class="detail-row">
+                    <span><strong>Brand:</strong></span>
+                    <span>{{carBrand}}</span>
+                </div>
+                
+                <div class="detail-row">
+                    <span><strong>Year:</strong></span>
+                    <span>{{carYear}}</span>
+                </div>
+                
+                <div class="detail-row">
+                    <span><strong>Location:</strong></span>
+                    <span>{{carLocation}}</span>
+                </div>
+                
+                <div class="detail-row">
+                    <span><strong>Car ID:</strong></span>
+                    <span>{{carId}}</span>
+                </div>
+            </div>
+            
+            <div class="action-required">
+                <h4 style="color: #856404; margin-top: 0;">⚡ Actions Required:</h4>
+                <ul style="margin: 0; padding-left: 20px;">
+                    <li>✅ Review the booking details</li>
+                    <li>📞 Contact customer if needed</li>
+                    <li>🚗 Ensure car is available for the requested dates</li>
+                    <li>📋 Update booking status if required</li>
+                    <li>📱 Prepare for customer pickup</li>
+                </ul>
+            </div>
+            
+            <div style="text-align: center;">
+                <a href="{{adminDashboardLink}}" class="cta-button">View in Admin Dashboard</a>
+            </div>
+        </div>
+        
+        <div class="footer">
+            <p>This is an automated notification from Fraction Admin System.</p>
+            <p style="margin-top: 20px;">
+                <strong>Fraction Admin Team</strong><br>
+                System Generated Notification
+            </p>
+        </div>
+    </div>
+</body>
+</html>

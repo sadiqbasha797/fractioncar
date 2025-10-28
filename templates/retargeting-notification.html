@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Don't Miss Out - {{carName}}</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+        .container {
+            background-color: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .logo {
+            font-size: 24px;
+            font-weight: bold;
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+        .car-image {
+            width: 100%;
+            max-width: 400px;
+            height: 250px;
+            object-fit: cover;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+        .car-details {
+            background-color: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+        .car-name {
+            font-size: 24px;
+            font-weight: bold;
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+        .brand-name {
+            font-size: 18px;
+            color: #7f8c8d;
+            margin-bottom: 15px;
+        }
+        .price-info {
+            display: flex;
+            justify-content: space-between;
+            margin: 15px 0;
+        }
+        .price-label {
+            font-weight: bold;
+            color: #34495e;
+        }
+        .price-value {
+            color: #e74c3c;
+            font-weight: bold;
+        }
+        .cta-button {
+            display: inline-block;
+            background-color: #3498db;
+            color: white;
+            padding: 15px 30px;
+            text-decoration: none;
+            border-radius: 5px;
+            font-weight: bold;
+            margin: 20px 0;
+            text-align: center;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        .cta-button:hover {
+            background-color: #2980b9;
+        }
+        .urgency-text {
+            background-color: #e74c3c;
+            color: white;
+            padding: 15px;
+            border-radius: 5px;
+            text-align: center;
+            margin: 20px 0;
+            font-weight: bold;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #ecf0f1;
+            color: #7f8c8d;
+            font-size: 14px;
+        }
+        .social-links {
+            margin: 20px 0;
+        }
+        .social-links a {
+            color: #3498db;
+            text-decoration: none;
+            margin: 0 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="logo">Fraction Cars</div>
+            <h1>Don't Miss Out!</h1>
+        </div>
+
+        <p>Hi {{userName}},</p>
+
+        <p>We noticed you were interested in the <strong>{{carName}}</strong> from {{brandName}}, but you haven't completed your purchase yet. Don't let this opportunity slip away!</p>
+
+        <div class="urgency-text">
+            ⚡ Limited Slots Available - Act Fast! ⚡
+        </div>
+
+        {{#if carImages.length}}
+        <div style="text-align: center;">
+            <img src="{{carImages.0}}" alt="{{carName}}" class="car-image">
+        </div>
+        {{/if}}
+
+        <div class="car-details">
+            <div class="car-name">{{carName}}</div>
+            <div class="brand-name">{{brandName}}</div>
+            
+            <div class="price-info">
+                <span class="price-label">Full Price:</span>
+                <span class="price-value">₹{{carPrice}}</span>
+            </div>
+            
+            <div class="price-info">
+                <span class="price-label">Fraction Price:</span>
+                <span class="price-value">₹{{fractionPrice}}</span>
+            </div>
+        </div>
+
+        <div style="background-color: #e8f5e8; padding: 15px; border-radius: 5px; margin: 20px 0;">
+            <h3 style="color: #27ae60; margin-top: 0;">Why Choose Fraction Ownership?</h3>
+            <ul style="color: #2c3e50;">
+                <li>Own a fraction of premium cars at affordable prices</li>
+                <li>Flexible booking options for your usage</li>
+                <li>Professional maintenance and insurance included</li>
+                <li>Easy resale options when you're ready</li>
+            </ul>
+        </div>
+
+        <a href="{{viewUrl}}" class="cta-button">Complete Your Purchase Now</a>
+
+        <div style="background-color: #fff3cd; padding: 15px; border-radius: 5px; margin: 20px 0;">
+            <p style="margin: 0; color: #856404;"><strong>Limited Time:</strong> This offer is only available for a limited time. Don't wait too long as slots are filling up fast!</p>
+        </div>
+
+        <div class="social-links">
+            <p>Follow us for updates:</p>
+            <a href="#">Facebook</a> |
+            <a href="#">Twitter</a> |
+            <a href="#">Instagram</a> |
+            <a href="#">LinkedIn</a>
+        </div>
+
+        <div class="footer">
+            <p>If you have any questions, feel free to contact our support team.</p>
+            <p>This email was sent because you showed interest in our cars. If you no longer wish to receive these emails, you can <a href="#">unsubscribe here</a>.</p>
+            <p>&copy; 2024 Fraction Cars. All rights reserved.</p>
+        </div>
+    </div>
+</body>
+</html>

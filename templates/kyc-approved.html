@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KYC Approved - Fraction</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+        .email-container {
+            background-color: #ffffff;
+            padding: 40px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .logo {
+            font-size: 32px;
+            font-weight: bold;
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+        .success-title {
+            color: #27ae60;
+            font-size: 28px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .success-icon {
+            font-size: 48px;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .content {
+            margin-bottom: 30px;
+        }
+        .highlight {
+            background-color: #d5f4e6;
+            padding: 20px;
+            border-radius: 5px;
+            margin: 20px 0;
+            border-left: 4px solid #27ae60;
+        }
+        .cta-button {
+            display: inline-block;
+            background-color: #27ae60;
+            color: white;
+            padding: 12px 30px;
+            text-decoration: none;
+            border-radius: 5px;
+            font-weight: bold;
+            text-align: center;
+            margin: 20px 0;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid #ecf0f1;
+            color: #7f8c8d;
+            font-size: 14px;
+        }
+        .approval-details {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 15px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="email-container">
+        <div class="header">
+            <div class="logo">FRACTION</div>
+            <p style="color: #7f8c8d; margin: 0;">Car Sharing Platform</p>
+        </div>
+        
+        <div class="success-icon">✅</div>
+        <h1 class="success-title">KYC Verification Approved!</h1>
+        
+        <div class="content">
+            <p>Dear <strong>{{userName}}</strong>,</p>
+            
+            <div class="highlight">
+                <h3 style="color: #27ae60; margin-top: 0;">Congratulations! 🎉</h3>
+                <p>Your KYC (Know Your Customer) verification has been <strong>successfully approved</strong>. You now have full access to all Fraction services!</p>
+            </div>
+            
+            <div class="approval-details">
+                <h4 style="color: #2c3e50; margin-top: 0;">Approval Details:</h4>
+                <p><strong>Approved By:</strong> {{approvedBy}}</p>
+                <p><strong>Approval Date:</strong> {{approvalDate}}</p>
+                <p><strong>Status:</strong> <span style="color: #27ae60; font-weight: bold;">APPROVED</span></p>
+            </div>
+            
+            <p>With your verified account, you can now:</p>
+            <ul>
+                <li>🚗 Book any available car instantly</li>
+                <li>💳 Make secure payments</li>
+                <li>🔓 Access premium features</li>
+                <li>📋 View detailed booking history</li>
+                <li>⭐ Rate and review your experiences</li>
+                <li>🎯 Enjoy priority customer support</li>
+            </ul>
+            
+            <p>Ready to start your journey with Fraction?</p>
+            
+            <div style="text-align: center;">
+                <a href="{{dashboardLink}}" class="cta-button">Start Booking Cars</a>
+            </div>
+        </div>
+        
+        <div class="footer">
+            <p>Thank you for completing your verification with Fraction!</p>
+            <p>We're excited to have you as a verified member of our community.</p>
+            <p style="margin-top: 20px;">
+                <strong>Fraction Team</strong><br>
+                Email: support@fraction.com<br>
+                Phone: +91-XXXXXXXXXX
+            </p>
+        </div>
+    </div>
+</body>
+</html>
