@@ -229,11 +229,7 @@ class RetargetingNotificationService {
   static async sendEmailNotification(user, car) {
     try {
       // Read the retargeting notification template
-      const fs = require('fs');
-      const path = require('path');
-      
-      const templatePath = path.join(__dirname, '..', 'templates', 'retargeting-notification.html');
-      const template = fs.readFileSync(templatePath, 'utf8');
+      const template = EmailService.readTemplate('retargeting-notification');
       
       // Prepare template data
       const templateData = {
@@ -246,12 +242,8 @@ class RetargetingNotificationService {
         viewUrl: `${process.env.FRONTEND_URL || 'http://localhost:4200'}/car-details/${car._id}`
       };
       
-      // Replace placeholders in template
-      let htmlContent = template;
-      for (const [key, value] of Object.entries(templateData)) {
-        const placeholder = new RegExp(`{{${key}}}`, 'g');
-        htmlContent = htmlContent.replace(placeholder, value || '');
-      }
+      // Replace placeholders in template using centralized function
+      const htmlContent = EmailService.replacePlaceholders(template, templateData);
       
       // Send email using the correct function signature
       await EmailService.sendEmail(

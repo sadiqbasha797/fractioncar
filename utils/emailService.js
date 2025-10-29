@@ -41,10 +41,52 @@ const readTemplate = (templateName) => {
 const replacePlaceholders = (template, data) => {
   let processedTemplate = template;
   
-  // Replace all {{placeholder}} with actual data
+  // Handle conditional blocks with property access {{#if fieldName.property}}...{{/if}}
+  const conditionalWithPropertyRegex = /{{#if\s+([\w.]+)}}([\s\S]*?){{\/if}}/g;
+  processedTemplate = processedTemplate.replace(conditionalWithPropertyRegex, (match, fieldPath, content) => {
+    // Split the field path (e.g., "carImages.length" -> ["carImages", "length"])
+    const parts = fieldPath.split('.');
+    let fieldValue = data[parts[0]];
+    
+    // Navigate through nested properties
+    for (let i = 1; i < parts.length && fieldValue !== undefined; i++) {
+      fieldValue = fieldValue[parts[i]];
+    }
+    
+    // Check if the field exists and has a truthy value
+    if (fieldValue !== undefined && fieldValue !== null && fieldValue !== '' && fieldValue !== false) {
+      return content;
+    }
+    return '';
+  });
+  
+  // Handle array/object access {{fieldName.index}} or {{fieldName.property}}
+  const arrayAccessRegex = /{{([\w.]+)}}/g;
+  processedTemplate = processedTemplate.replace(arrayAccessRegex, (match, fieldPath) => {
+    // Split the field path (e.g., "carImages.0" -> ["carImages", "0"])
+    const parts = fieldPath.split('.');
+    let value = data[parts[0]];
+    
+    // Navigate through nested properties/indices
+    for (let i = 1; i < parts.length && value !== undefined; i++) {
+      // Check if it's a numeric index
+      const index = parseInt(parts[i]);
+      if (!isNaN(index)) {
+        value = value[index];
+      } else {
+        value = value[parts[i]];
+      }
+    }
+    
+    return (value !== undefined && value !== null) ? value : '';
+  });
+  
+  // Replace simple placeholders (this is now redundant due to arrayAccessRegex but kept for clarity)
   for (const [key, value] of Object.entries(data)) {
-    const placeholder = new RegExp(`{{${key}}}`, 'g');
-    processedTemplate = processedTemplate.replace(placeholder, value || '');
+    if (typeof value !== 'object') {
+      const placeholder = new RegExp(`{{${key}}}`, 'g');
+      processedTemplate = processedTemplate.replace(placeholder, value || '');
+    }
   }
   
   return processedTemplate;
@@ -1034,6 +1076,8 @@ module.exports = {
   sendRefundInitiated,
   sendRefundProcessed,
   sendRefundSuccessful,
+  replacePlaceholders,
+  readTemplate,
   sendRefundNotification,
   sendTestEmail,
   sendSharedMemberSubmissionNotification,
