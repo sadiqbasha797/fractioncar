@@ -3,6 +3,7 @@ const router = express.Router();
 const carController = require('../controllers/carController');
 const authMiddleware = require('../middleware/authMiddleware');
 const upload = require('../config/multer');
+const excelUpload = require('../config/excelMulter');
 
 // Public route to get all cars without authentication
 router.get('/public', carController.getPublicCars);
@@ -27,6 +28,9 @@ router.use(authMiddleware(['admin', 'superadmin']));
 
 // Create a new car
 router.post('/', upload.array('images', 10), carController.createCar);
+
+// Bulk upload cars from Excel/CSV
+router.post('/bulk-upload', excelUpload.single('file'), carController.bulkUploadCars);
 
 // Get all cars
 router.get('/', carController.getCars);

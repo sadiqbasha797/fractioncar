@@ -37,6 +37,7 @@
     "multer": "^2.0.2",
     "node-cron": "^3.0.3",
     "nodemailer": "^7.0.5",
-    "razorpay": "^2.9.2"
+    "razorpay": "^2.9.2",
+    "xlsx": "^0.18.5"
   }
 }

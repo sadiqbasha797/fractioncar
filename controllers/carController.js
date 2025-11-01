@@ -4,6 +4,7 @@ const cloudinary = require('../config/cloudinary');
 const fs = require('fs');
 const { deleteImagesFromCloudinary } = require('../utils/imageUtils');
 const BookingAvailabilityService = require('../utils/bookingAvailabilityService');
+const XLSX = require('xlsx');
 
 // Create a new car
 const createCar = async (req, res) => {
@@ -661,6 +662,163 @@ const getMostBrowsedCars = async (req, res) => {
   }
 };
 
+// Bulk upload cars from Excel/CSV file
+const bulkUploadCars = async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({
+        status: 'failed',
+        body: {},
+        message: 'No file uploaded'
+      });
+    }
+
+    const filePath = req.file.path;
+    const fileExtension = req.file.originalname.split('.').pop()?.toLowerCase();
+
+    let carsData = [];
+
+    try {
+      // Parse Excel or CSV file
+      if (fileExtension === 'csv') {
+        // Parse CSV file - read as text and convert
+        const csvContent = fs.readFileSync(filePath, 'utf-8');
+        const workbook = XLSX.read(csvContent, { type: 'string', raw: true });
+        const sheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[sheetName];
+        carsData = XLSX.utils.sheet_to_json(worksheet);
+      } else {
+        // Parse Excel file
+        const workbook = XLSX.readFile(filePath);
+        const sheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[sheetName];
+        carsData = XLSX.utils.sheet_to_json(worksheet);
+      }
+
+      // Delete the uploaded file after parsing
+      fs.unlinkSync(filePath);
+    } catch (parseError) {
+      // Clean up file if it exists
+      if (fs.existsSync(filePath)) {
+        fs.unlinkSync(filePath);
+      }
+      return res.status(400).json({
+        status: 'failed',
+        body: {},
+        message: `Error parsing file: ${parseError.message}`
+      });
+    }
+
+    if (!carsData || carsData.length === 0) {
+      return res.status(400).json({
+        status: 'failed',
+        body: {},
+        message: 'No data found in the file'
+      });
+    }
+
+    const results = {
+      successCount: 0,
+      failedCount: 0,
+      errors: []
+    };
+
+    // Process each car record
+    for (let i = 0; i < carsData.length; i++) {
+      const row = carsData[i];
+      const rowNumber = i + 2; // +2 because header is row 1 and arrays are 0-indexed
+
+      try {
+        // Map and validate car data
+        const carData = {
+          carname: row.carname?.toString().trim() || '',
+          brandname: row.brandname?.toString().trim() || '',
+          color: row.color?.toString().trim() || '',
+          milege: row.milege?.toString().trim() || '',
+          seating: row.seating ? parseInt(row.seating) : 0,
+          features: row.features ? row.features.toString().split(',').map((f) => f.trim()).filter((f) => f) : [],
+          price: row.price?.toString().trim() || '',
+          fractionprice: row.fractionprice?.toString().trim() || '',
+          tokenprice: row.tokenprice?.toString().trim() || '',
+          bookNowTokenPrice: row.bookNowTokenPrice?.toString().trim() || '',
+          amcperticket: row.amcperticket?.toString().trim() || '',
+          totaltickets: row.totaltickets ? parseInt(row.totaltickets) : 12,
+          ticketsavilble: row.ticketsavilble ? parseInt(row.ticketsavilble) : 0,
+          tokensavailble: row.tokensavailble ? parseInt(row.tokensavailble) : 20,
+          bookNowTokenAvailable: row.bookNowTokenAvailable ? parseInt(row.bookNowTokenAvailable) : 12,
+          contractYears: row.contractYears ? parseInt(row.contractYears) : 5,
+          location: row.location?.toString().trim() || '',
+          pincode: row.pincode?.toString().trim() || '',
+          status: row.status?.toString().toLowerCase() || 'pending',
+          description: row.description?.toString().trim() || '',
+          images: [] // Images are excluded from bulk upload
+        };
+
+        // Validate status enum
+        if (!['active', 'pending', 'cancelled'].includes(carData.status)) {
+          carData.status = 'pending';
+        }
+
+        // Validate maximum limits
+        if (carData.totaltickets > 12 || carData.totaltickets < 1) {
+          results.failedCount++;
+          results.errors.push(`Row ${rowNumber}: Total tickets must be between 1 and 12`);
+          continue;
+        }
+
+        if (carData.bookNowTokenAvailable > 12 || carData.bookNowTokenAvailable < 0) {
+          results.failedCount++;
+          results.errors.push(`Row ${rowNumber}: Book now tokens must be between 0 and 12`);
+          continue;
+        }
+
+        if (carData.tokensavailble > 20 || carData.tokensavailble < 0) {
+          results.failedCount++;
+          results.errors.push(`Row ${rowNumber}: Waitlist tokens must be between 0 and 20`);
+          continue;
+        }
+
+        // Create car
+        const car = new Car({
+          ...carData,
+          createdBy: req.user.id,
+          createdByModel: req.user.role === 'superadmin' ? 'SuperAdmin' : 'Admin'
+        });
+
+        await car.save();
+        results.successCount++;
+      } catch (error) {
+        results.failedCount++;
+        results.errors.push(`Row ${rowNumber}: ${error.message || 'Unknown error'}`);
+        logger(`Error creating car from row ${rowNumber}: ${error.message}`);
+      }
+    }
+
+    res.json({
+      status: 'success',
+      body: results,
+      message: `Bulk upload completed. ${results.successCount} car(s) created, ${results.failedCount} failed.`
+    });
+  } catch (error) {
+    logger(`Error in bulkUploadCars: ${error.message}`);
+    
+    // Clean up uploaded file if it still exists
+    if (req.file && req.file.path && fs.existsSync(req.file.path)) {
+      try {
+        fs.unlinkSync(req.file.path);
+      } catch (cleanupError) {
+        logger(`Error cleaning up file: ${cleanupError.message}`);
+      }
+    }
+
+    res.status(500).json({
+      status: 'failed',
+      body: {},
+      message: `Internal server error: ${error.message}`
+    });
+  }
+};
+
 module.exports = {
   createCar,
   getCars,
@@ -672,5 +830,6 @@ module.exports = {
   getPublicCars,
   getPublicCarById,
   trackCarView,
-  getMostBrowsedCars
+  getMostBrowsedCars,
+  bulkUploadCars
 };
